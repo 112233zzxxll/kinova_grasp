@@ -1,0 +1,49 @@
+<mujoco model="six">
+  <compiler angle="radian" meshdir="assets" autolimits="true"/>
+  <option integrator="implicitfast" gravity="0 0 -9.8"/>
+  <default>
+  <default class="mesh_collision">
+      <geom type="box" contype="1" conaffinity="1" group="3"
+            solimp="0.95 0.99 0.001" solref="0.004 1"
+            size="0.009 0.025 0.073"/>  <!-- 每个碰撞盒: 宽0.02, 高0.3, 深0.146 -->
+  </default>
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+      </default>
+  </default>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <mesh file="sixth.STL"/>
+    <material name="gray" rgba="0.4627 0.4627 0.4627 1"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+  </asset>
+
+  <worldbody>
+    <body name="six" pos="-1 1.2 2" euler="3.14 0 0">
+        <!--pos="-0.98 -1.2 -1.2"可以把没旋转的模型移到中心坐标；pos="-1 1.2 2" euler="3.14 0 0"可以挪动模型,0.2/小格-->
+            <joint name="six_joint" type="free"/>
+            <geom class="visual" mesh="sixth"/>
+            <inertial mass="0.1" pos="0.98 1.2 1.2" diaginertia="0.0025599 0.0025599 0.0021942"/>
+            <geom class="mesh_collision" name="col_side1" pos="1.225 1.2 1.27" euler="0 0 0.000"/>
+            <geom class="mesh_collision" name="col_side2" pos="1.102 1.4013 1.27" euler="0 0 1.047"/>
+            <geom class="mesh_collision" name="col_side3" pos="0.86 1.3993 1.27" euler="0 0 2.094"/>
+            <geom class="mesh_collision" name="col_side4" pos="0.744 1.2 1.27" euler="0 0 3.142"/>
+            <geom class="mesh_collision" name="col_side5" pos="0.86 0.985 1.27" euler="0 0 4.189"/>
+            <geom class="mesh_collision" name="col_side6" pos="1.102 0.985 1.27" euler="0 0 5.236"/>
+    </body>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+        <body name="world_frame" pos="0 0 0">
+            <geom name="X" type="cylinder" size="0.005" fromto="0 0 0 0.3 0 0" rgba="1 0 0 1" contype="0"
+                  conaffinity="0"/>
+            <geom name="Y" type="cylinder" size="0.005" fromto="0 0 0 0 0.3 0" rgba="0 1 0 1" contype="0"
+                  conaffinity="0"/>
+            <geom name="Z" type="cylinder" size="0.005" fromto="0 0 0 0 0 0.3" rgba="0 0 1 1" contype="0"
+                  conaffinity="0"/>
+        </body>
+  </worldbody>
+
+</mujoco>
