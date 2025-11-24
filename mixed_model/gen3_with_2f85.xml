@@ -268,7 +268,7 @@
         </body>
       </body>
     </body>
-<body name="six" pos="-1 0.4 1.35" euler="3.14 0 0">
+<body name="six" pos="-1 0.4 1.35" euler="3.14 0 0"> <!--原配置是pos="-1 0.4 1.35"-->
         <!--pos="-0.98 -1.2 -1.2"可以把没旋转的模型移到中心坐标；pos="-1 1.2 2" euler="3.14 0 0"可以挪动模型,0.2/小格-->
             <joint name="six_joint" type="free"/>
             <geom class="visual" mesh="sixth"/>
