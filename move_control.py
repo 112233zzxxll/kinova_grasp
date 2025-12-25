@@ -56,8 +56,6 @@ max_velocities = {
 velocity_limit = mink.VelocityLimit(model1, max_velocities)
 limits.append(velocity_limit)
 
-model = configuration1.model
-data = configuration1.data # 提取数据，准备求解
 solver = "daqp"
 
 # # --------------- 相机预设置 ---------------

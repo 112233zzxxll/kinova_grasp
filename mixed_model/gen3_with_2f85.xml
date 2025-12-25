@@ -280,6 +280,15 @@
             <geom class="mesh_collision" name="col_side5" pos="0.86 0.985 1.27" euler="0 0 4.189"/>
             <geom class="mesh_collision" name="col_side6" pos="1.102 0.985 1.27" euler="0 0 5.236"/>
 </body>
+<body name="target" pos="-0.13 0.5 0.1" quat="1 0 0 0">
+            <geom size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="4"/>
+            <geom name="x1" type="cylinder" size="0.005" fromto="0 0 0 0.3 0 0" rgba="1 0 0 1" contype="0"
+            conaffinity="0" group="4"/>
+            <geom name="y1" type="cylinder" size="0.005" fromto="0 0 0 0 0.3 0" rgba="0 1 0 1" contype="0"
+            conaffinity="0" group="4"/>
+            <geom name="z1" type="cylinder" size="0.005" fromto="0 0 0 0 0 0.3" rgba="0 0 1 1" contype="0"
+            conaffinity="0" group="4"/>
+</body>
   </worldbody>
 
   <actuator>
