@@ -1,11 +1,14 @@
 import mujoco
 import mujoco.viewer
 import numpy as np
-import random
 import time
 import nolo_tracker
 import mink
 import mink_use
+import glfw
+import cv2
+import subprocess
+
 
 # --------------- 基本配置 ---------------
 model = mujoco.MjModel.from_xml_path('mixed_model/scene.xml')
@@ -17,9 +20,6 @@ pos2 = [0, 0.26179939, 3.14159265, -2.26892803, 0, 0.95993109, 1.57079633, 0] # 
 pos3 = [0, -0.382, 3.14159265, -1.75, 0, -1.43, 1.57079633, 0] # 夹爪斜向下
 data.ctrl[:] = pos3
 
-dt = model.opt.timestep
-duration = 2
-steps = int(duration / dt)          # 2 秒对应的步数
 
 
 # -------------- 待抓取模型随机生成 -------------
@@ -34,7 +34,7 @@ x = np.random.uniform(*workspace['x'])
 y = np.random.uniform(*workspace['y'])
 z = np.random.uniform(*workspace['z'])
 random_pos = np.array([x, y, z])
-print(random_pos)
+# print(random_pos)
 """获取物体id"""
 object_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "six")
 object_joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "six_joint")
@@ -44,12 +44,16 @@ model.body_pos[object_body_id] = random_pos
 data.qpos[object_qpos_adr:object_qpos_adr + 3] = random_pos
 
 
-# 启用nolo,初始化原始位姿：
+# --------------- 启用nolo ---------------
+exe_path = r"NoloDeviceSDK-master\NoloServer\NoloServer.exe"
+subprocess.Popen([exe_path],
+                 stdout=subprocess.DEVNULL,  # 屏蔽标准输出
+                 stderr=subprocess.DEVNULL  # 屏蔽错误输出
+                 )
 nolo_tracker.func()
-ee_pos = np.array([0,0,0])
-ee_rot = np.array([1,0,0,0], dtype=np.float64)
-ee_rot = mink.SO3(ee_rot)  # 构造 SO3 群元
 
+
+# --------------- 初始化target ---------------
 ee_pos = np.array([0.3, 0, 0.5])
 ee_rot = np.array([[0.5,0.866,0], [0.866,-0.5,0], [0,0,-1]])
 ee_rot = mink.SO3.from_matrix(ee_rot)
@@ -58,9 +62,47 @@ target = mink.SE3.from_rotation_and_translation(ee_rot, ee_pos) # 对准，这�
 # 初始化求解模型
 configuration, tasks, end_effector_task, solver, limits, model0, data0 = mink_use.init_model() # 所有求解中间变量打包
 
-# --------------- 线性流程 ---------------
+# # --------------- 相机预设置 ---------------
+# resolution = (320, 240)
+# # 创建OpenGL上下文（离屏渲染）
+# glfw.init()
+# glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+# window = glfw.create_window(resolution[0], resolution[1], "Offscreen", None, None)
+# glfw.make_context_current(window)
+#
+# scene = mujoco.MjvScene(model, maxgeom=10000)
+# context = mujoco.MjrContext(model, mujoco.mjtFontScale.mjFONTSCALE_150.value)
+#
+# # 设置相机参数
+# camera_name = "rgb_camera"
+# camera_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
+# camera = mujoco.MjvCamera()
+# camera.type = mujoco.mjtCamera.mjCAMERA_FIXED
+# camera.fixedcamid = camera_id
+#
+# # 创建帧缓冲对象
+# framebuffer = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
+# mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, context)
+# # --------------- 相机预设置 ---------------
+
+# --------------- 仿真 ---------------
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
+
+        # # --------------- 相机设置模块( ---------------
+        # viewport = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
+        # mujoco.mjv_updateScene(model, data, mujoco.MjvOption(), mujoco.MjvPerturb(), camera, mujoco.mjtCatBit.mjCAT_ALL,
+        #                        scene)
+        # mujoco.mjr_render(viewport, scene, context)
+        # rgb = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
+        # mujoco.mjr_readPixels(rgb, None, viewport, context)
+        # # 转换颜色空间 (OpenCV使用BGR格式)
+        # bgr = cv2.cvtColor(np.flipud(rgb), cv2.COLOR_RGB2BGR)
+        # cv2.imshow('MuJoCo Camera Output', bgr)
+        # viewer.sync()
+        # cv2.waitKey(1)
+        # # --------------- )相机设置模块 ---------------
+
         d_pos, d_so3, button = nolo_tracker.get_delta() # 获取相对位移
         if button > 0:
             ee_pos, ee_rot, target = mink_use.get_target(ee_pos, ee_rot, d_pos, d_so3) # 末端位姿

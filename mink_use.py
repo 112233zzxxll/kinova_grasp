@@ -50,19 +50,14 @@ def init_model():
 
     return configuration, tasks, end_effector_task, solver, limits, model, data
 
-
 def get_target(old_ee_pos, old_ee_rot, d_pos, d_so3): #通过 nolo 计算机械臂末端相对位移
 
     new_ee_pos = old_ee_pos + d_pos
-
     new_ee_rot = d_so3.multiply(old_ee_rot)
     # new_ee_rot = d_so3.log() + old_ee_rot.log()
     # new_ee_rot = SO3.exp(new_ee_rot)
-
     target = mink.SE3.from_rotation_and_translation(new_ee_rot, new_ee_pos)  # 对准，这个 target 后续切换成物体位位姿估计
-
     return new_ee_pos, new_ee_rot, target
-
 
 def solve(configuration, tasks, end_effector_task, solver, limits, model, data, target):
     end_effector_task.set_target(target)  # 设定 target 求解

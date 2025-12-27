@@ -111,6 +111,7 @@ d_so3 = mink.SO3(d_so3)  # 构造 SO3 群元
 d_pos = [0,0,0]
 old_pos = None
 old_so3 = None
+epsilon = 1.5
 # 定义回调函数
 def on_new_data(nolo_data_ptr):
     """处理新数据的回调函数"""
@@ -118,9 +119,9 @@ def on_new_data(nolo_data_ptr):
     # 获取手柄动态
     nolo_data = nolo_data_ptr.contents
     pos = np.frombuffer(nolo_data.leftData.Position, dtype=np.float32) # 新平移
-    x = pos[2]
-    y = -pos[0]
-    z = pos[1]
+    x = pos[2] * epsilon
+    y = -pos[0] * epsilon
+    z = pos[1] * epsilon
     pos = np.array([x, y, z], dtype=np.float32)
     # print(f"\r{pos} ", end="", flush=True)
 
