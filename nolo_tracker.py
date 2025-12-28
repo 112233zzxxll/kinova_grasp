@@ -2,8 +2,13 @@ import ctypes
 import time
 from ctypes import Structure, c_float, c_int, c_uint, c_byte, POINTER, CFUNCTYPE, byref
 import numpy as np
+import subprocess
 import mink
 
+# 使用说明：
+# func():初始化nolo
+# get_delta()：获取手柄差值
+# 其余为辅助函数
 
 # 定义NOLO SDK中的数据结构（与C/C++结构体对应）
 class NVector2(Structure):
@@ -111,7 +116,7 @@ d_so3 = mink.SO3(d_so3)  # 构造 SO3 群元
 d_pos = [0,0,0]
 old_pos = None
 old_so3 = None
-epsilon = 1.5
+epsilon = 0.7
 # 定义回调函数
 def on_new_data(nolo_data_ptr):
     """处理新数据的回调函数"""
@@ -140,6 +145,7 @@ def on_new_data(nolo_data_ptr):
     # curr_so3 = curr_so3.multiply(map_so3)
 
     button = nolo_data.leftData.Buttons # 按钮
+    # print(f"\r{button} ", end="", flush=True)
 
     if old_pos is None:
         d_pos = pos - pos
@@ -198,10 +204,14 @@ def init_nolo():
         print("打开NOLO连接失败")
         return False
 
-    # 主程序
 def func():
     print("是否运行：NoloDeviceSDK-master/NoloServer/NoloServer.exe")
     print("开始连接NOLO设备...")
+    exe_path = r"NoloDeviceSDK-master\NoloServer\NoloServer.exe"
+    subprocess.Popen([exe_path],
+                     stdout=subprocess.DEVNULL,  # 屏蔽标准输出
+                     stderr=subprocess.DEVNULL  # 屏蔽错误输出
+                     )
     init_nolo()
 
 def get_delta():

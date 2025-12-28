@@ -1,12 +1,14 @@
-import mujoco.viewer
+import mujoco
 import numpy as np
 import mink
 from mink import SO3
-import time
-import glfw
-import cv2
 
+# 使用说明：运动学解算(方便调用）
+
+configuration = None
+task = None
 def init_model():
+    global configuration, task
     model = mujoco.MjModel.from_xml_path("mixed_model/gen3.xml")
     data = mujoco.MjData(model) # 求解空间
 
@@ -51,11 +53,8 @@ def init_model():
     return configuration, tasks, end_effector_task, solver, limits, model, data
 
 def get_target(old_ee_pos, old_ee_rot, d_pos, d_so3): #通过 nolo 计算机械臂末端相对位移
-
     new_ee_pos = old_ee_pos + d_pos
     new_ee_rot = d_so3.multiply(old_ee_rot)
-    # new_ee_rot = d_so3.log() + old_ee_rot.log()
-    # new_ee_rot = SO3.exp(new_ee_rot)
     target = mink.SE3.from_rotation_and_translation(new_ee_rot, new_ee_pos)  # 对准，这个 target 后续切换成物体位位姿估计
     return new_ee_pos, new_ee_rot, target
 
@@ -65,9 +64,6 @@ def solve(configuration, tasks, end_effector_task, solver, limits, model, data, 
     configuration.integrate_inplace(vel, 0.002)  # 关节角位置
     return configuration.q  # 更新控制
 
-
-
-
-
-
-
+def get_ee():
+    ee = configuration.get_transform_frame_to_world("pinch_site", "site")
+    return ee
