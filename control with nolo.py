@@ -16,7 +16,7 @@ env.reset_target()
 
 # --------------- 启用nolo ---------------
 nolo_tracker.func()
-
+button = 0
 # --------------- 初始化target ---------------
 ee_pos, ee_rot, target = env.reset_ee()
 
@@ -34,6 +34,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
 
         d_pos, d_so3, button = nolo_tracker.get_delta() # 获取相对位移
+        button = 0 # 脱离nolo测试--------------------------------------------------------------------------!!!!!!
         if button > 0:
             ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3) # 末端位姿
             model.body("target").pos = ee_pos  # 立即生效
