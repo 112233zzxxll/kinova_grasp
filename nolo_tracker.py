@@ -110,7 +110,7 @@ nolo_lib.RegisterCallBack.restype = None
 nolo_lib.SetHmdCenter.restype = None
 
 
-button = None
+button = 0
 d_so3 = np.array([1,0,0,0], dtype=np.float64)
 d_so3 = mink.SO3(d_so3)  # 构造 SO3 群元
 d_pos = [0,0,0]
