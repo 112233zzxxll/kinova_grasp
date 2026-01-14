@@ -7,10 +7,6 @@ import time
 model = mujoco.MjModel.from_xml_path('mixed_model/scene.xml')
 data  = mujoco.MjData(model)
 
-
-
-
-
 # --------------- 线性流程 ---------------
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():

@@ -1,67 +1,60 @@
-from xml.etree.ElementInclude import default_loader
-
 import mujoco
 import mujoco.viewer
 import numpy as np
-import time
-import glfw
 import cv2
+import time
 
-# --------------- 基本配置 ---------------
-model = mujoco.MjModel.from_xml_path('mixed_model/scene.xml')
-data  = mujoco.MjData(model)
+# ----------------------------
+# 1. 加载模型（确保 XML <size> 已正确设置）
+# ----------------------------
+model = mujoco.MjModel.from_xml_path("mixed_model/scene.xml")
+data = mujoco.MjData(model)
 
-bent = np.array([1 ,0.743, 0.59, 1.24, -0.41, 0.882, -0.53, 0])
-default = np.array([0, 0, 0, 0, 0, 0, 0 , 0])
+print(f"✅ njmax={model.njmax}, nconmax={model.nconmax}")
 
-dt = model.opt.timestep
-duration = 2
-steps = int(duration / dt)          # 2 秒对应的步数
+# ----------------------------
+# 2. 获取相机 ID
+# ----------------------------
+try:
+    cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
+    cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
+except:
+    print("⚠️ 相机未找到，使用索引 0 和 1")
+    cam1_id, cam2_id = 0, 1
 
-# --------------- 相机预设置 ---------------
-resolution = (224,224)
-# 创建OpenGL上下文（离屏渲染）
-glfw.init()
-glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-window = glfw.create_window(resolution[0], resolution[1], "Offscreen", None, None)
-glfw.make_context_current(window)
+# ----------------------------
+# 3. 创建离屏渲染器
+# ----------------------------
+renderer = mujoco.Renderer(model, height=224, width=224)
 
-scene = mujoco.MjvScene(model, maxgeom=10000)
-context = mujoco.MjrContext(model, mujoco.mjtFontScale.mjFONTSCALE_150.value)
-
-# 设置相机参数
-camera_name = "fixed_camera"
-# camera_name = "rgb_camera"
-camera_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
-camera = mujoco.MjvCamera()
-camera.type = mujoco.mjtCamera.mjCAMERA_FIXED
-camera.fixedcamid = camera_id
-
-# 创建帧缓冲对象
-framebuffer = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
-mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, context)
-# --------------- 相机预设置 ---------------
-
-# --------------- 线性流程 ---------------
+# ----------------------------
+# 4. 启动交互式 viewer（单线程主循环）
+# ----------------------------
 with mujoco.viewer.launch_passive(model, data) as viewer:
-    data.ctrl[:] = default
     while viewer.is_running():
-        # --------------- 相机设置模块( ---------------
-        viewport = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
-        mujoco.mjv_updateScene(model, data, mujoco.MjvOption(), mujoco.MjvPerturb(), camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
-        mujoco.mjr_render(viewport, scene, context)
-        rgb = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
-        mujoco.mjr_readPixels(rgb, None, viewport, context)
-        # 转换颜色空间 (OpenCV使用BGR格式)
-        bgr = cv2.cvtColor(np.flipud(rgb), cv2.COLOR_RGB2BGR)
-        cv2.imshow('MuJoCo Camera Output', bgr)
-        viewer.sync()
-        cv2.waitKey(1)
-        # --------------- )相机设置模块 ---------------
+        step_start = time.time()
+
+        # ✅ 在主线程中推进仿真（关键！）
         mujoco.mj_step(model, data)
+
+        # ✅ 渲染两个离屏视角
+        renderer.update_scene(data, camera=cam1_id)
+        img1 = renderer.render()
+
+        renderer.update_scene(data, camera=cam2_id)
+        img2 = renderer.render()
+
+        # 显示离屏图像
+        cv2.imshow("Top View", cv2.cvtColor(img1, cv2.COLOR_RGB2BGR))
+        cv2.imshow("Side View", cv2.cvtColor(img2, cv2.COLOR_RGB2BGR))
+        cv2.waitKey(1)
+
+        # 同步交互式 viewer
         viewer.sync()
-    # --------------- 删除相机资源 ---------------
-    cv2.destroyAllWindows()
-    glfw.terminate()
-    del context
-    del scene
+
+        # 控制帧率（可选）
+        time_until_next = model.opt.timestep - (time.time() - step_start)
+        if time_until_next > 0:
+            time.sleep(time_until_next)
+
+cv2.destroyAllWindows()
