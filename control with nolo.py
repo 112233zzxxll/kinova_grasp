@@ -33,7 +33,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
 
         # --------------- 相机设置模块 ---------------
-        if step % 100 == 0:  # 每100步采一帧
+        if step % 20 == 0:  # 每x步采一帧
             renderer.update_scene(data, camera=cam1_id)
             img1 = renderer.render()
             renderer.update_scene(data, camera=cam2_id)
