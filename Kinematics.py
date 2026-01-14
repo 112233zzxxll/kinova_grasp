@@ -33,13 +33,13 @@ def init_model():
     ]  # 碰撞边界条件以及关节角限制
 
     max_velocities = {
-        "joint_1": np.pi / 6,
-        "joint_2": np.pi / 6,
-        "joint_3": np.pi / 3,
-        "joint_4": np.pi / 3,
-        "joint_5": np.pi / 3,
-        "joint_6": np.pi / 3,
-        "joint_7": np.pi / 3,
+        "joint_1": np.pi/2,
+        "joint_2": np.pi/2,
+        "joint_3": np.pi/2,
+        "joint_4": np.pi/2,
+        "joint_5": np.pi/2,
+        "joint_6": np.pi/2,
+        "joint_7": np.pi/2,
     }  # 关节限速
 
     velocity_limit = mink.VelocityLimit(model, max_velocities)

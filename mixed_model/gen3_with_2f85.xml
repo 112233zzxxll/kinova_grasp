@@ -286,8 +286,8 @@
             <geom class="mesh_collision" name="col_side6" pos="0.122 -0.205 0.075" euler="0 0 5.236"/>
 </body>
 
-<body name="fixed_camera" pos="1.5 0 0.6" euler="0 0 1.57">
-            <camera name="fixed_camera" pos="0 0 0" euler="1.44 0 0" fovy="80" resolution="640 480"/>
+<body name="fixed_camera" pos="1.2 0 0.6" euler="0 0 1.57">
+            <camera name="fixed_camera" pos="0 0 0" euler="1.44 0 0" fovy="60" resolution="224 224"/>
             <geom class="mesh_camera" pos="0 -0.05639 -0.058475" quat="0 0 0 1" mass="0.0001"/>
 </body>
 
