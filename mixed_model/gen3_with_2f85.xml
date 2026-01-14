@@ -88,7 +88,7 @@
     <default class="mesh_collision">
       <geom type="box" contype="1" conaffinity="1" group="3"
             solimp="0.95 0.99 0.001" solref="0.004 1"
-            size="0.009 0.025 0.073"/>  <!-- 每个碰撞盒: 宽0.02, 高0.3, 深0.146 -->
+            size="0.009 0.025 0.073" rgba="0.5 0.5 0.5 0.7"/>  <!-- 每个碰撞盒: 宽0.02, 高0.3, 深0.146 -->
     </default>
     <default class="mesh_camera">
       <geom type="box" rgba="1 0 0 1" contype="1" conaffinity="1" group="3"
@@ -100,6 +100,12 @@
     <asset>
     <mesh file="sixth.STL"/>
     </asset>
+
+<default>
+    <default class="visual1">
+      <geom type="mesh" contype="0" conaffinity="0" group="2" rgba="0.5 0.5 0.5 1"/>
+    </default>
+</default>
 
   <worldbody>
       <body name="world_frame" pos="0 0 0">
@@ -268,17 +274,30 @@
         </body>
       </body>
     </body>
-<body name="six" pos="-1 0.4 1.35" euler="3.14 0 0"> <!--原配置是pos="-1 0.4 1.35"-->
-        <!--pos="-0.98 -1.2 -1.2"可以把没旋转的模型移到中心坐标；pos="-1 1.2 2" euler="3.14 0 0"可以挪动模型,0.2/小格-->
+<body name="six" pos="0 0 0" euler="0 0 0">
             <joint name="six_joint" type="free"/>
-            <geom class="visual" mesh="sixth"/>
-            <inertial mass="0.1" pos="0.98 1.2 1.2" diaginertia="0.0025599 0.0025599 0.0021942"/>
-            <geom class="mesh_collision" name="col_side1" pos="1.225 1.2 1.27" euler="0 0 0.000"/>
-            <geom class="mesh_collision" name="col_side2" pos="1.102 1.4013 1.27" euler="0 0 1.047"/>
-            <geom class="mesh_collision" name="col_side3" pos="0.86 1.3993 1.27" euler="0 0 2.094"/>
-            <geom class="mesh_collision" name="col_side4" pos="0.744 1.2 1.27" euler="0 0 3.142"/>
-            <geom class="mesh_collision" name="col_side5" pos="0.86 0.985 1.27" euler="0 0 4.189"/>
-            <geom class="mesh_collision" name="col_side6" pos="1.102 0.985 1.27" euler="0 0 5.236"/>
+            <geom class="visual1" mesh="sixth"/>
+            <inertial mass="0.1" pos="0 0 0" diaginertia="0.0025599 0.0025599 0.0021942"/>
+            <geom class="mesh_collision" name="col_side1" pos="0.24 0 0.075" euler="0 0 0.000"/>
+            <geom class="mesh_collision" name="col_side2" pos="0.122 0.205 0.075" euler="0 0 1.047"/>
+            <geom class="mesh_collision" name="col_side3" pos="-0.12 0.205 0.075" euler="0 0 2.094"/>
+            <geom class="mesh_collision" name="col_side4" pos="-0.24 0 0.075" euler="0 0 3.142"/>
+            <geom class="mesh_collision" name="col_side5" pos="-0.12 -0.205 0.075" euler="0 0 4.189"/>
+            <geom class="mesh_collision" name="col_side6" pos="0.122 -0.205 0.075" euler="0 0 5.236"/>
+</body>
+<body name="assemble" pos="0.4 -0.8 0.4" euler="0 0 -1.57">
+            <geom class="visual1" mesh="sixth"/>
+            <inertial mass="0.1" pos="0 0 0" diaginertia="0.0025599 0.0025599 0.0021942"/>
+            <geom class="mesh_collision" name="col_side41" pos="-0.24 0 0.075" euler="0 0 3.142"/>
+            <geom class="mesh_collision" name="col_side411" pos="-0.26 0.04 0.075" euler="0 0 1.57"/>
+            <geom class="mesh_collision" name="col_side412" pos="-0.26 -0.04 0.075" euler="0 0 1.57"/>
+            <geom class="mesh_collision" name="col_side413" pos="-0.21 0 0.165" euler="0 1.57 3.142"/>
+            <geom class="mesh_collision" name="col_side414" pos="-0.21 0 -0.015" euler="0 -1.57 3.142"/>
+
+            <geom name="aim3" type="cylinder" size="0.003" fromto="-0.2 -0.1 0.02 -0.5 -0.1 0.02" rgba="1 0 0 1" contype="0"
+            conaffinity="0" group="4"/>
+            <geom name="aim4" type="cylinder" size="0.003" fromto="-0.2 0.1 0.02 -0.5 0.1 0.02" rgba="1 0 0 1" contype="0"
+            conaffinity="0" group="4"/>
 </body>
 <body name="target" pos="-0.13 0.5 0.1" quat="1 0 0 0">
             <geom size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="4"/>

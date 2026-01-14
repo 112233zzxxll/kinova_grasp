@@ -116,7 +116,7 @@ d_so3 = mink.SO3(d_so3)  # 构造 SO3 群元
 d_pos = [0,0,0]
 old_pos = None
 old_so3 = None
-epsilon = 0.7
+epsilon = 0.5
 # 定义回调函数
 def on_new_data(nolo_data_ptr):
     """处理新数据的回调函数"""
@@ -166,7 +166,7 @@ data_callback_func = DATA_CALLBACK(on_new_data)
 
 # 定义连接和断开回调（可选）
 def on_zmq_connected():
-    print("设备已连接")
+    # print("设备已连接")
     # 可以在这里设置头显中心点
     hmd_center = NVector3(0.0, 0.09, 0.07)
     nolo_lib.SetHmdCenter(byref(hmd_center))
@@ -205,7 +205,7 @@ def init_nolo():
         return False
 
 def func():
-    print("是否运行：NoloDeviceSDK-master/NoloServer/NoloServer.exe")
+    print("注意是否运行：NoloDeviceSDK-master/NoloServer/NoloServer.exe")
     print("开始连接NOLO设备...")
     exe_path = r"NoloDeviceSDK-master\NoloServer\NoloServer.exe"
     subprocess.Popen([exe_path],

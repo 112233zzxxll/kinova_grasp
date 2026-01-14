@@ -16,7 +16,7 @@ env.reset_target()
 
 # --------------- 启用nolo ---------------
 nolo_tracker.func()
-
+button = 0
 # --------------- 初始化target ---------------
 ee_pos, ee_rot, target = env.reset_ee()
 

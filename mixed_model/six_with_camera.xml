@@ -5,7 +5,7 @@
   <default class="mesh_collision">
       <geom type="box" contype="1" conaffinity="1" group="3"
             solimp="0.95 0.99 0.001" solref="0.004 1"
-            size="0.009 0.025 0.073"/>  <!-- 每个碰撞盒: 宽0.02, 高0.3, 深0.146 -->
+            size="0.009 0.025 0.073"/>  <!-- 每个碰撞盒半尺寸 -->
   </default>
   <default class="mesh_camera">
       <geom type="box" rgba="1 0 0 1" contype="1" conaffinity="1" group="3"
