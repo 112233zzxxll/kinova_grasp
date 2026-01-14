@@ -44,7 +44,7 @@ mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, context)
 
 # --------------- 线性流程 ---------------
 with mujoco.viewer.launch_passive(model, data) as viewer:
-    data.ctrl[:] = bent
+    data.ctrl[:] = default
     while viewer.is_running():
         # --------------- 相机设置模块( ---------------
         viewport = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
