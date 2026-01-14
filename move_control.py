@@ -11,7 +11,8 @@ data1 = mujoco.MjData(model1) # 求解空间
 model2 = mujoco.MjModel.from_xml_path("mixed_model/scene.xml")
 data2 = mujoco.MjData(model2) # 显示
 
-ee_pos = np.array([0.1, -0.58, 0.4])
+ee_pos = np.array([0.3, 0, 0.6])
+# ee_pos = np.array([0.1, -0.58, 0.4])
 ee_rot = np.array([[0.5,0.866,0], [0.866,-0.5,0], [0,0,-1]])
 rot = mink.SO3.from_matrix(ee_rot)
 target = mink.SE3.from_rotation_and_translation(rot, ee_pos) # 对准，这个 target 后续切换成物体位位姿估计
@@ -58,28 +59,29 @@ limits.append(velocity_limit)
 
 solver = "daqp"
 
-# # --------------- 相机预设置 ---------------
-# resolution = (320, 240)
-# # 创建OpenGL上下文（离屏渲染）
-# glfw.init()
-# glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-# window = glfw.create_window(resolution[0], resolution[1], "Offscreen", None, None)
-# glfw.make_context_current(window)
-#
-# scene = mujoco.MjvScene(model2, maxgeom=10000)
-# context = mujoco.MjrContext(model2, mujoco.mjtFontScale.mjFONTSCALE_150.value)
-#
-# # 设置相机参数
+# --------------- 相机预设置 ---------------
+resolution = (224, 224)
+# 创建OpenGL上下文（离屏渲染）
+glfw.init()
+glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+window = glfw.create_window(resolution[0], resolution[1], "Offscreen", None, None)
+glfw.make_context_current(window)
+
+scene = mujoco.MjvScene(model2, maxgeom=10000)
+context = mujoco.MjrContext(model2, mujoco.mjtFontScale.mjFONTSCALE_150.value)
+
+# 设置相机参数
 # camera_name = "rgb_camera"
-# camera_id = mujoco.mj_name2id(model2, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
-# camera = mujoco.MjvCamera()
-# camera.type = mujoco.mjtCamera.mjCAMERA_FIXED
-# camera.fixedcamid = camera_id
-#
-# # 创建帧缓冲对象
-# framebuffer = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
-# mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, context)
-# # --------------- 相机预设置 ---------------
+camera_name = "fixed_camera"
+camera_id = mujoco.mj_name2id(model2, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
+camera = mujoco.MjvCamera()
+camera.type = mujoco.mjtCamera.mjCAMERA_FIXED
+camera.fixedcamid = camera_id
+
+# 创建帧缓冲对象
+framebuffer = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
+mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, context)
+# --------------- 相机预设置 ---------------
 
 with mujoco.viewer.launch_passive(model2, data2) as viewer:
     data2.ctrl[:7] = [0, 0, 0, 0, 0, 0, 0]
@@ -90,19 +92,19 @@ with mujoco.viewer.launch_passive(model2, data2) as viewer:
 
     while viewer.is_running():
 
-        # # --------------- 相机设置模块( ---------------
-        # viewport = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
-        # mujoco.mjv_updateScene(model2, data2, mujoco.MjvOption(), mujoco.MjvPerturb(), camera, mujoco.mjtCatBit.mjCAT_ALL,
-        #                        scene)
-        # mujoco.mjr_render(viewport, scene, context)
-        # rgb = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
-        # mujoco.mjr_readPixels(rgb, None, viewport, context)
-        # # 转换颜色空间 (OpenCV使用BGR格式)
-        # bgr = cv2.cvtColor(np.flipud(rgb), cv2.COLOR_RGB2BGR)
-        # cv2.imshow('MuJoCo Camera Output', bgr)
-        # viewer.sync()
-        # cv2.waitKey(1)
-        # # --------------- )相机设置模块 ---------------
+        # --------------- 相机设置模块( ---------------
+        viewport = mujoco.MjrRect(0, 0, resolution[0], resolution[1])
+        mujoco.mjv_updateScene(model2, data2, mujoco.MjvOption(), mujoco.MjvPerturb(), camera, mujoco.mjtCatBit.mjCAT_ALL,
+                               scene)
+        mujoco.mjr_render(viewport, scene, context)
+        rgb = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
+        mujoco.mjr_readPixels(rgb, None, viewport, context)
+        # 转换颜色空间 (OpenCV使用BGR格式)
+        bgr = cv2.cvtColor(np.flipud(rgb), cv2.COLOR_RGB2BGR)
+        cv2.imshow('MuJoCo Camera Output', bgr)
+        viewer.sync()
+        cv2.waitKey(1)
+        # --------------- )相机设置模块 ---------------
 
         if i == 1: # 对准阶段
             target = target # 这里用于接入位姿估计实时更新 target（物体位置）
