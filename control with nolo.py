@@ -61,5 +61,5 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
         data.ctrl[:7] = result
         mujoco.mj_step(model, data)
-        viewer.sync()       
+        viewer.sync()
 print("脚本终止")
