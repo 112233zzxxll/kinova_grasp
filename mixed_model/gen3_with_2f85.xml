@@ -274,11 +274,7 @@
         </body>
       </body>
     </body>
-<<<<<<< HEAD
-<body name="six" pos="0 0 0" euler="0 0 0">
-=======
 <body name="six" pos="0.5 0 0.1" euler="0 0 0">
->>>>>>> 46661da6cd6fe94e2834572ed8876bd9d58eec0c
             <joint name="six_joint" type="free"/>
             <geom class="visual1" mesh="sixth"/>
             <inertial mass="0.1" pos="0 0 0" diaginertia="0.0025599 0.0025599 0.0021942"/>
@@ -289,6 +285,12 @@
             <geom class="mesh_collision" name="col_side5" pos="-0.12 -0.205 0.075" euler="0 0 4.189"/>
             <geom class="mesh_collision" name="col_side6" pos="0.122 -0.205 0.075" euler="0 0 5.236"/>
 </body>
+
+<body name="fixed_camera" pos="1.5 0 0.6" euler="0 0 1.57">
+            <camera name="fixed_camera" pos="0 0 0" euler="1.44 0 0" fovy="80" resolution="640 480"/>
+            <geom class="mesh_camera" pos="0 -0.05639 -0.058475" quat="0 0 0 1" mass="0.0001"/>
+</body>
+
 <body name="assemble" pos="0.4 -0.8 0.4" euler="0 0 -1.57">
             <geom class="visual1" mesh="sixth"/>
             <inertial mass="0.1" pos="0 0 0" diaginertia="0.0025599 0.0025599 0.0021942"/>

@@ -19,7 +19,7 @@ duration = 2
 steps = int(duration / dt)          # 2 秒对应的步数
 
 # --------------- 相机预设置 ---------------
-resolution = (320, 240)
+resolution = (224,224)
 # 创建OpenGL上下文（离屏渲染）
 glfw.init()
 glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
@@ -30,7 +30,8 @@ scene = mujoco.MjvScene(model, maxgeom=10000)
 context = mujoco.MjrContext(model, mujoco.mjtFontScale.mjFONTSCALE_150.value)
 
 # 设置相机参数
-camera_name = "rgb_camera"
+camera_name = "fixed_camera"
+# camera_name = "rgb_camera"
 camera_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
 camera = mujoco.MjvCamera()
 camera.type = mujoco.mjtCamera.mjCAMERA_FIXED
