@@ -274,7 +274,11 @@
         </body>
       </body>
     </body>
+<<<<<<< HEAD
 <body name="six" pos="0 0 0" euler="0 0 0">
+=======
+<body name="six" pos="0.5 0 0.1" euler="0 0 0">
+>>>>>>> 46661da6cd6fe94e2834572ed8876bd9d58eec0c
             <joint name="six_joint" type="free"/>
             <geom class="visual1" mesh="sixth"/>
             <inertial mass="0.1" pos="0 0 0" diaginertia="0.0025599 0.0025599 0.0021942"/>
