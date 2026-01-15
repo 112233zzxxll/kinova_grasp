@@ -21,9 +21,8 @@ import os
     obs1  手臂相机
     obs2  正面相机
     action  输入动作
-    arm_state  手臂状态(重建场景使用)
-    object1  被抓物体位姿
-    object2  装配目标位置(无旋转)
+    state_dict 瓶颈状态
+    object  被抓物体位姿
     skills  瓶颈位置索引
 """
 
@@ -76,11 +75,15 @@ def restore_state(data, state_dict): # 加载状态
     data.mocap_pos[:] = state_dict['mocap_pos']
     data.mocap_quat[:] = state_dict['mocap_quat']
 
+object_body_id1 = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "assemble") # 修改默认位置
+# model.body_pos[object_body_id1] = random_pos # 默认位置修改
+
 step = 0
 obs1 = [] # 手臂相机
 obs2 = [] # 正面相机
 action = [] # 输入动作
 state_dict = [] # 瓶颈状态
+object = [] # 目标位置
 skills = [] # 瓶颈位置索引
 demo_dir = Path("demo_path")
 demo_dir.mkdir(parents=True, exist_ok=True)
@@ -125,6 +128,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
                     state = save_state(data)
                     state_dict.append(state)
                     skills.append(skill)
+                    object.append(model.body_pos[object_body_id1])
                     print("瓶颈状态已记录：", skills)
             step += 1
 
@@ -135,6 +139,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             t["obs2"] = obs2
             t["actions"] = action
             t["state_dict"] = state_dict
+            t["object"] = object
             t["skills"] = skills
             path = demo_dir / f"{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.pkl"
             with open(path, "wb") as f:
@@ -150,6 +155,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             obs2 = []
             action = []
             state_dict = []
+            object = []
             skills = []
             print("缓存已清空")
             user_input = None
@@ -162,6 +168,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             obs2 = []
             action = []
             state_dict = []
+            object = []
             skills = []
             print("正在清理......")
             user_input = None

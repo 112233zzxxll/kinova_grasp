@@ -18,6 +18,7 @@ from pathlib import Path
     obs2  正面相机
     action  输入动作
     state_dict 瓶颈状态
+    object  被抓物体位姿
     skills  瓶颈位置索引
 
 """
@@ -29,6 +30,7 @@ with open(first_file, "rb") as f:
     data0 = pickle.load(f)
 
 state_dict = data0["state_dict"]
+object = data0["object"]
 
 
 
@@ -71,11 +73,14 @@ def restore_state(data, state_dict):
     data.mocap_pos[:] = state_dict['mocap_pos']
     data.mocap_quat[:] = state_dict['mocap_quat']
 
+object_body_id1 = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "assemble") # 修改默认位置
+
 # --------------- 仿真 ---------------
 with mujoco.viewer.launch_passive(model, data) as viewer:
     step = 0
     while viewer.is_running():
         restore_state(data, state_dict[1])
+        model.body_pos[object_body_id1] = object[0]
         mujoco.mj_step(model, data)
         viewer.sync()
 print("脚本终止")
