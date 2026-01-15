@@ -44,7 +44,7 @@ configuration, tasks, end_effector_task, solver, limits, model0, data0 = K.init_
 # --------------- 相机预设置 ---------------
 cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
 cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
-renderer = mujoco.Renderer(model, height=224, width=224)
+renderer = mujoco.Renderer(model, height=112, width=112)
 
 # --------------- 键盘监听 ------------------
 user_input = None
@@ -167,5 +167,5 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             user_input = None
             time.sleep(1)
             print("缓存已清空,数据已抛弃")
-            
+
 print("脚本终止，重启终端以重新运行程序")
