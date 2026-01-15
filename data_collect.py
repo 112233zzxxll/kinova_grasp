@@ -14,8 +14,18 @@ import os
 # 采集的数据包括：
 # 1. 两个图像：img1 和 img2 （224*224*2）(observation)
 # 2. 关节相对位姿：d_pos 和 d_so3 (action)
-# 3. 瓶颈位置标记：由 True 和 False 构成的序列（skill）
+# 3. 瓶颈位置标记：瓶颈位置索引（skill）
 # 4. 物体位姿和关节状态记录：记录 “瓶颈位置” 机械臂关节空间以及所有物体位姿
+""" 
+数据格式：
+    obs1  手臂相机
+    obs2  正面相机
+    action  输入动作
+    arm_state  手臂状态(重建场景使用)
+    object1  被抓物体位姿
+    object2  装配目标位置(无旋转)
+    skills  瓶颈位置索引
+"""
 
 
 # --------------- 基本配置 ---------------
@@ -37,7 +47,6 @@ cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
 renderer = mujoco.Renderer(model, height=224, width=224)
 
 # --------------- 键盘监听 ------------------
-# 全局变量
 user_input = None
 def key_callback(keycode):
     global user_input
@@ -47,7 +56,7 @@ def key_callback(keycode):
         user_input = "abandon"
     print(f"Key pressed: {chr(keycode)}")
 
-# --------------- 采集参数初始化 -------------------
+# --------------- 采集参数初始化（用于环境重构） -------------------
 actuator_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, "fingers_actuator") # 夹爪执行器索引
 joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'right_driver_joint') # 关节索引
 qpos_index = model.jnt_qposadr[joint_id] # 夹爪实际开度索引
