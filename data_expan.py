@@ -9,6 +9,7 @@ import Kinematics as K
 import glfw
 import cv2
 import grasp_env as env
+from pathlib import Path
 
 """
 本程序用于对采集到的数据进行重组扩充
@@ -16,20 +17,18 @@ import grasp_env as env
     obs1  手臂相机
     obs2  正面相机
     action  输入动作
-    arm_state  手臂状态(重建场景使用)
-    object1  被抓物体位姿
-    object2  装配目标位置(无旋转)
+    state_dict 瓶颈状态
     skills  瓶颈位置索引
 
 """
 # 打开并加载 .pkl 文件
-path = "demo_path/2026-01-15T19-57-09.pkl"
-with open(path, "rb") as f:  # 注意是 "rb"（二进制读取）
-    data = pickle.load(f)
+demo_dir = Path("demo_path")
+pkl_files = sorted(demo_dir.glob("*.pkl"))
+first_file = pkl_files[0]
+with open(first_file, "rb") as f:
+    data0 = pickle.load(f)
 
-# 现在 data 就是你保存时的原始对象（字典、列表等）
-print(data.keys())  # 如果是字典
-print(data["arm_state"])  # 示例
+state_dict = data0["state_dict"]
 
 
 
@@ -39,7 +38,8 @@ model, data = env.init_env("mixed_model/scene.xml")
 env.reset_target()
 
 # --------------- 启用nolo ---------------
-nolo_tracker.func()
+# nolo_tracker.func()
+
 # --------------- 初始化target ---------------
 ee_pos, ee_rot, target = env.reset_ee()
 
@@ -51,24 +51,31 @@ cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
 cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
 renderer = mujoco.Renderer(model, height=224, width=224)
 
-# --------------- 采集参数初始化（用于环境重构） -------------------
-actuator_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, "fingers_actuator") # 夹爪执行器索引
-joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'right_driver_joint') # 关节索引
-qpos_index = model.jnt_qposadr[joint_id] # 夹爪实际开度索引
-# data.ctrl[actuator_id] # 控制指令
-# data.qpos[qpos_index] # 实际开度
 
-object1_joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "six_joint")
-object1_qpos_adr = model.jnt_qposadr[object1_joint_id]
-# data.qpos[object1_qpos_adr:object1_qpos_adr + 3] # 对应 pos
-# data.qpos[object1_qpos_adr + 3:object1_qpos_adr + 7] # 对应 quat
-
-object2_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "assemble") #修改默认位置
-# model.body_pos[object2_body_id]  # 位置
+# --------------- 环境重置 ---------------
+def save_state(data):
+    return {
+        'time': data.time,
+        'qpos': data.qpos.copy(),
+        'qvel': data.qvel.copy(),
+        'act': data.act.copy() if data.act.size > 0 else None,
+        'mocap_pos': data.mocap_pos.copy(),
+        'mocap_quat': data.mocap_quat.copy(),
+    }
+def restore_state(data, state_dict):
+    data.time = state_dict['time']
+    data.qpos[:] = state_dict['qpos']
+    data.qvel[:] = state_dict['qvel']
+    if state_dict['act'] is not None:
+        data.act[:] = state_dict['act']
+    data.mocap_pos[:] = state_dict['mocap_pos']
+    data.mocap_quat[:] = state_dict['mocap_quat']
 
 # --------------- 仿真 ---------------
 with mujoco.viewer.launch_passive(model, data) as viewer:
+    step = 0
     while viewer.is_running():
+        restore_state(data, state_dict[1])
         mujoco.mj_step(model, data)
         viewer.sync()
 print("脚本终止")

@@ -56,33 +56,34 @@ def key_callback(keycode):
         user_input = "abandon"
     print(f"Key pressed: {chr(keycode)}")
 
-# --------------- 参数初始化（用于环境重构） -------------------
-actuator_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, "fingers_actuator") # 夹爪执行器索引
-joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'right_driver_joint') # 关节索引
-qpos_index = model.jnt_qposadr[joint_id] # 夹爪实际开度索引
-# data.ctrl[actuator_id] # 控制指令
-# data.qpos[qpos_index] # 实际开度
+# --------------- 环境重构函数定义 -------------------
+def save_state(data): # 保存状态
+    return {
+        'time': data.time,
+        'qpos': data.qpos.copy(),
+        'qvel': data.qvel.copy(),
+        'act': data.act.copy() if data.act.size > 0 else None,
+        'mocap_pos': data.mocap_pos.copy(),
+        'mocap_quat': data.mocap_quat.copy(),
+    }
 
-object1_joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "six_joint")
-object1_qpos_adr = model.jnt_qposadr[object1_joint_id]
-# data.qpos[object1_qpos_adr:object1_qpos_adr + 3] # 对应 pos
-# data.qpos[object1_qpos_adr + 3:object1_qpos_adr + 7] # 对应 quat
-
-object2_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "assemble") #修改默认位置
-# model.body_pos[object2_body_id]  # 位置
-
+def restore_state(data, state_dict): # 加载状态
+    data.time = state_dict['time']
+    data.qpos[:] = state_dict['qpos']
+    data.qvel[:] = state_dict['qvel']
+    if state_dict['act'] is not None:
+        data.act[:] = state_dict['act']
+    data.mocap_pos[:] = state_dict['mocap_pos']
+    data.mocap_quat[:] = state_dict['mocap_quat']
 
 step = 0
 obs1 = [] # 手臂相机
 obs2 = [] # 正面相机
 action = [] # 输入动作
-arm_state = [] # 手臂状态(重建场景使用)
-object1 = [] # 被抓物体位姿
-object2 = [] # 装配目标位置(无旋转)
+state_dict = [] # 瓶颈状态
 skills = [] # 瓶颈位置索引
 demo_dir = Path("demo_path")
 demo_dir.mkdir(parents=True, exist_ok=True)
-
 
 # --------------- 仿真 ---------------
 with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as viewer:
@@ -113,20 +114,16 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
                 cv2.imshow("Top View", cv2.cvtColor(img1, cv2.COLOR_RGB2BGR))
                 cv2.imshow("Side View", cv2.cvtColor(img2, cv2.COLOR_RGB2BGR))
                 cv2.waitKey(1)
-                # --------------- 数据获取(用于重建瓶颈状态环境) -------------------
-                obj1 = [data.qpos[object1_qpos_adr:object1_qpos_adr + 3], data.qpos[object1_qpos_adr + 3:object1_qpos_adr + 7]] # [[pos],[quat]]
-                obj2 = [model.body_pos[object2_body_id]] # [pos]
-                arm_state0 = [data.ctrl[actuator_id], data.qpos[qpos_index]] # [[指令],[实际开度]]
+
                 skill = len(obs1) + 1 # 瓶颈状态索引
                 #---------------- 数据保存 -------------------
                 obs1.append(img1)
                 obs2.append(img2)
                 action.append([d_pos, d_so3])
-                if button > 1000:
+                if button > 1000: # 记录瓶颈状态
                     time.sleep(1)
-                    arm_state.append([result, arm_state0]) 
-                    object1.append(obj1)
-                    object2.append(obj2)
+                    state = save_state(data)
+                    state_dict.append(state)
                     skills.append(skill)
                     print("瓶颈状态已记录：", skills)
             step += 1
@@ -137,9 +134,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             t["obs1"] = obs1
             t["obs2"] = obs2
             t["actions"] = action
-            t["arm_state"] = arm_state
-            t["object1"] = object1
-            t["object2"] = object2
+            t["state_dict"] = state_dict
             t["skills"] = skills
             path = demo_dir / f"{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.pkl"
             with open(path, "wb") as f:
@@ -154,9 +149,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             obs1 = []
             obs2 = []
             action = []
-            arm_state = []
-            object1 = []
-            object2 = []
+            state_dict = []
             skills = []
             print("缓存已清空")
             user_input = None
@@ -168,13 +161,11 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             obs1 = []
             obs2 = []
             action = []
-            arm_state = []
-            object1 = []
-            object2 = []
+            state_dict = []
             skills = []
             print("正在清理......")
             user_input = None
             time.sleep(1)
             print("缓存已清空,数据已抛弃")
-
+            
 print("脚本终止，重启终端以重新运行程序")
