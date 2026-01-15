@@ -2,3 +2,5 @@ _pycache_/
 *.pyc
 *.pyo
 *.pyd
+*.pkl
+demo_path/
