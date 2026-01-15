@@ -56,7 +56,7 @@ def key_callback(keycode):
         user_input = "abandon"
     print(f"Key pressed: {chr(keycode)}")
 
-# --------------- 采集参数初始化（用于环境重构） -------------------
+# --------------- 参数初始化（用于环境重构） -------------------
 actuator_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, "fingers_actuator") # 夹爪执行器索引
 joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, 'right_driver_joint') # 关节索引
 qpos_index = model.jnt_qposadr[joint_id] # 夹爪实际开度索引
@@ -89,6 +89,10 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
     while viewer.is_running():
 
         d_pos, d_so3, button = nolo_tracker.get_delta() # 获取相对位移
+        result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
+        data.ctrl[:7] = result
+        mujoco.mj_step(model, data)
+        viewer.sync()
         if button > 0: #按下 trigger 开始动作
             ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3) # 末端位姿
             model.body("target").pos = ee_pos  # 立即生效
@@ -120,9 +124,8 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
                 action.append([d_pos, d_so3])
                 if button > 1000:
                     time.sleep(1)
-                    arm_state.append(arm_state0) 
+                    arm_state.append([result, arm_state0]) 
                     object1.append(obj1)
-                    print(object1)
                     object2.append(obj2)
                     skills.append(skill)
                     print("瓶颈状态已记录：", skills)
@@ -173,8 +176,5 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             user_input = None
             time.sleep(1)
             print("缓存已清空,数据已抛弃")
-        result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
-        data.ctrl[:7] = result
-        mujoco.mj_step(model, data)
-        viewer.sync()
+
 print("脚本终止，重启终端以重新运行程序")
