@@ -24,7 +24,7 @@ import os
     state_dict 瓶颈状态
     object  被抓物体位姿
     skills  瓶颈位置索引
-    ee 末端位姿
+    ee 求解状态
 """
 
 
@@ -86,7 +86,7 @@ actions = [] # 输入动作
 state_dict = [] # 瓶颈状态
 object = [] # 目标位置
 skills = [] # 瓶颈位置索引
-ee = [] # 瓶颈状态末端位姿
+ee = [] # 瓶颈状态求解
 demo_dir = Path("demo_path")
 demo_dir.mkdir(parents=True, exist_ok=True)
 
@@ -131,7 +131,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
                     state_dict.append(state)
                     skills.append(skill)
                     object.append(model.body_pos[object_body_id1])
-                    ee0 = K.get_ee()
+                    ee0 = save_state(data0)
                     ee.append(ee0)
                     print("瓶颈状态已记录：", skills)
             step += 1

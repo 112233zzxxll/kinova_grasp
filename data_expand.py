@@ -21,7 +21,7 @@ from pathlib import Path
     state_dict 瓶颈状态
     object  被抓物体位姿
     skills  瓶颈位置索引
-
+    ee 末端位姿
 """
 # 打开并加载 .pkl 文件
 demo_dir = Path("demo_path")
@@ -37,6 +37,7 @@ state_dict_origin = data0["state_dict"]
 object_origin = data0["object"]
 skills_origin = data0["skills"]
 ee_origin = data0["ee"]
+print(ee_origin)
 
 # --------------- 基本配置 ---------------
 model, data = env.init_env("mixed_model/scene.xml")
@@ -44,10 +45,10 @@ env.reset_target()
 
 # --------------- 启用nolo ---------------
 nolo_tracker.func()
-
+button = 0
 # --------------- 初始化target ---------------
 ee_pos, ee_rot, target = env.reset_ee()
-print(target)
+
 # ----------------- 初始化求解模型 ----------------
 configuration, tasks, end_effector_task, solver, limits, model0, data0 = K.init_model() # 所有求解中间变量打包
 
@@ -105,9 +106,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             for j in range(8): # 每个瓶颈位置扩充 8 条数据
                 restore_state(data, state_dict_origin[i])
                 model.body_pos[object_body_id1] = object_origin[i] # 重置对应瓶颈位置
-                mujoco.mj_step(model, data)
                 # 这里把隐含的 target 算出来
                 target = ee_origin[i]
+                mujoco.mj_step(model, data)
                 viewer.sync()
                 time.sleep(0.5)
                 print("环境重置完毕")
@@ -115,8 +116,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     d_pos, d_so3, button = nolo_tracker.get_delta() # 获取相对位移
                     result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
                     data.ctrl[:7] = result
-                    mujoco.mj_step(model, data)
-                    viewer.sync()
                     # target 也要保存，否则机械臂运行就闪现？
                     if button > 0: #按下 trigger 开始动作
                         ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3) # 末端位姿
@@ -127,6 +126,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                             data.ctrl[7] = 255
                         else:
                             data.ctrl[7] = 0
+                    mujoco.mj_step(model, data)
+                    viewer.sync()
 
 
 
