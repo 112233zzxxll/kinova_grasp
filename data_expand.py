@@ -112,31 +112,38 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 # 这里把隐含的 target 算出来
                 restore_state(data0, targets_origin[i])
                 [ee_rot, ee_pos, target, result] = ee_origin[i]
-                print(ee_origin)
                 data.ctrl[:7] = result
                 data.ctrl[7] = 255
                 model.body("target").pos = ee_pos  
                 quat = ee_rot.parameters()
                 model.body("target").quat = quat
+                key_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "home")
+                trg_qpos = state_dict_origin[i]['qpos']
+                model0.key_qpos[key_id, :] = trg_qpos[:7]
+                home_qpos = model0.key_qpos[key_id]
+                configuration.update_from_keyframe("home")
                 mujoco.mj_step(model, data)
                 viewer.sync()
-                time.sleep(0.5)
+                time.sleep(1)
                 print("环境重置完毕")
+                change = False
 
                 while not change: # 数据采集
                     d_pos, d_so3, button = nolo_tracker.get_delta() # 获取相对位移
                     ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3) # 末端位姿
                     result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
-                    data.ctrl[:7] = result
                 #     # target 也要保存，否则机械臂运行就闪现？
                     if button > 0: #按下 trigger 开始动作
                         ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3) # 末端位姿
                         model.body("target").pos = ee_pos  # 立即生效
                         quat = ee_rot.parameters()
                         model.body("target").quat = quat
+                        data.ctrl[:7] = result
                         if button > 10: # 夹爪闭合
                             data.ctrl[7] = 255
                         else:
                             data.ctrl[7] = 0
+                        if button > 1000:
+                            change = True
                     mujoco.mj_step(model, data)
                     viewer.sync()
