@@ -36,6 +36,7 @@ action_origin = data0["actions"]
 state_dict_origin = data0["state_dict"]
 object_origin = data0["object"]
 skills_origin = data0["skills"]
+ee_origin = data0["ee"]
 
 # --------------- 基本配置 ---------------
 model, data = env.init_env("mixed_model/scene.xml")
@@ -46,7 +47,7 @@ nolo_tracker.func()
 
 # --------------- 初始化target ---------------
 ee_pos, ee_rot, target = env.reset_ee()
-
+print(target)
 # ----------------- 初始化求解模型 ----------------
 configuration, tasks, end_effector_task, solver, limits, model0, data0 = K.init_model() # 所有求解中间变量打包
 
@@ -105,6 +106,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 restore_state(data, state_dict_origin[i])
                 model.body_pos[object_body_id1] = object_origin[i] # 重置对应瓶颈位置
                 mujoco.mj_step(model, data)
+                # 这里把隐含的 target 算出来
+                target = ee_origin[i]
                 viewer.sync()
                 time.sleep(0.5)
                 print("环境重置完毕")
@@ -113,7 +116,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
                     data.ctrl[:7] = result
                     mujoco.mj_step(model, data)
+                    viewer.sync()
                     # target 也要保存，否则机械臂运行就闪现？
+                    if button > 0: #按下 trigger 开始动作
+                        ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3) # 末端位姿
+                        model.body("target").pos = ee_pos  # 立即生效
+                        quat = ee_rot.parameters()
+                        model.body("target").quat = quat
+                        if button > 10: # 夹爪闭合
+                            data.ctrl[7] = 255
+                        else:
+                            data.ctrl[7] = 0
 
 
 
