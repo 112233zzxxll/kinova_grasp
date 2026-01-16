@@ -105,28 +105,30 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running(): 
         for i in range(len(skills_origin)): # 瓶颈位置
             for j in range(8): # 每个瓶颈位置扩充 8 条数据
-
                 restore_state(data, state_dict_origin[i])
                 model.body_pos[object_body_id1] = object_origin[i] # 重置对应瓶颈位置
 
-                # 这里把隐含的 target 算出来
+                # 这里把运算模型中的参数更新
                 restore_state(data0, targets_origin[i])
                 [ee_rot, ee_pos, target, result] = ee_origin[i]
                 data.ctrl[:7] = result
                 data.ctrl[7] = 255
+
                 model.body("target").pos = ee_pos  
                 quat = ee_rot.parameters()
                 model.body("target").quat = quat
+
                 key_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "home")
                 trg_qpos = state_dict_origin[i]['qpos']
                 model0.key_qpos[key_id, :] = trg_qpos[:7]
-                home_qpos = model0.key_qpos[key_id]
-                configuration.update_from_keyframe("home")
+                configuration.update_from_keyframe("home") # 重置解算位置
+
                 mujoco.mj_step(model, data)
                 viewer.sync()
                 time.sleep(1)
+                change = False # 是否进入下一步
                 print("环境重置完毕")
-                change = False
+
 
                 while not change: # 数据采集
                     d_pos, d_so3, button = nolo_tracker.get_delta() # 获取相对位移
