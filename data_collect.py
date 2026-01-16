@@ -13,14 +13,14 @@ import os
 # 该脚本在control with nolo基础上做修改，进行数据采集
 # 采集的数据包括：
 # 1. 两个图像：img1 和 img2 （224*224*2）(observation)
-# 2. 关节相对位姿：d_pos 和 d_so3 (action)
+# 2. 关节相对位姿：d_pos 和 d_so3 (actions)
 # 3. 瓶颈位置标记：瓶颈位置索引（skill）
 # 4. 物体位姿和关节状态记录：记录 “瓶颈位置” 机械臂关节空间以及所有物体位姿
 """ 
 数据格式：.pkl
     obs1  手臂相机
     obs2  正面相机
-    action  输入动作
+    actions  输入动作
     state_dict 瓶颈状态
     object  被抓物体位姿
     skills  瓶颈位置索引
@@ -81,7 +81,7 @@ object_body_id1 = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "assemble")
 step = 0
 obs1 = [] # 手臂相机
 obs2 = [] # 正面相机
-action = [] # 输入动作
+actions = [] # 输入动作
 state_dict = [] # 瓶颈状态
 object = [] # 目标位置
 skills = [] # 瓶颈位置索引
@@ -122,7 +122,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
                 #---------------- 数据保存 -------------------
                 obs1.append(img1)
                 obs2.append(img2)
-                action.append([d_pos, d_so3])
+                actions.append([d_pos, d_so3])
                 if button > 1000: # 记录瓶颈状态
                     time.sleep(1)
                     state = save_state(data)
@@ -137,7 +137,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             t = {}
             t["obs1"] = obs1
             t["obs2"] = obs2
-            t["actions"] = action
+            t["actions"] = actions
             t["state_dict"] = state_dict
             t["object"] = object
             t["skills"] = skills
@@ -153,7 +153,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             step = 0
             obs1 = []
             obs2 = []
-            action = []
+            actions = []
             state_dict = []
             object = []
             skills = []
@@ -166,7 +166,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             step = 0
             obs1 = []
             obs2 = []
-            action = []
+            actions = []
             state_dict = []
             object = []
             skills = []

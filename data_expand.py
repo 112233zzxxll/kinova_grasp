@@ -13,10 +13,11 @@ from pathlib import Path
 
 """
 本程序用于对采集到的数据进行重组扩充
+每次运行前需要读取单条.pkl文件, 扩充后将生成5*5条新数据, 预计总共20条
 数据格式: demo_path/.pkl
     obs1  手臂相机
     obs2  正面相机
-    action  输入动作
+    actions  输入动作
     state_dict 瓶颈状态
     object  被抓物体位姿
     skills  瓶颈位置索引
@@ -29,18 +30,19 @@ first_file = pkl_files[0]
 with open(first_file, "rb") as f:
     data0 = pickle.load(f)
 
-state_dict = data0["state_dict"]
-object = data0["object"]
-
-
-
+obs1_origin = data0["obs1"]
+obs2_origin = data0["obs2"]
+action_origin = data0["actions"]
+state_dict_origin = data0["state_dict"]
+object_origin = data0["object"]
+skills_origin = data0["skills"]
 
 # --------------- 基本配置 ---------------
 model, data = env.init_env("mixed_model/scene.xml")
 env.reset_target()
 
 # --------------- 启用nolo ---------------
-# nolo_tracker.func()
+nolo_tracker.func()
 
 # --------------- 初始化target ---------------
 ee_pos, ee_rot, target = env.reset_ee()
@@ -75,12 +77,41 @@ def restore_state(data, state_dict):
 
 object_body_id1 = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "assemble") # 修改默认位置
 
+step = 0
+obs1 = [] # 手臂相机
+obs2 = [] # 正面相机
+action = [] # 输入动作
+state_dict = [] # 瓶颈状态
+object = [] # 目标位置
+demo_dir = Path("expanded_path")
+demo_dir.mkdir(parents=True, exist_ok=True)
+change = False # 是否切换到下一条进行采集
+
 # --------------- 仿真 ---------------
 with mujoco.viewer.launch_passive(model, data) as viewer:
     step = 0
-    while viewer.is_running():
-        restore_state(data, state_dict[1])
-        model.body_pos[object_body_id1] = object[0]
-        mujoco.mj_step(model, data)
-        viewer.sync()
-print("脚本终止")
+    while viewer.is_running(): 
+        for i in range(len(skills_origin)): # 瓶颈位置
+            for j in range(8): # 每个瓶颈位置扩充 8 条数据
+                restore_state(data, state_dict_origin[i])
+                model.body_pos[object_body_id1] = object_origin[i] # 重置对应瓶颈位置
+                mujoco.mj_step(model, data)
+                viewer.sync()
+                time.sleep(0.5)
+                print("环境重置完毕")
+                while not change: # 数据采集
+                    
+
+
+
+
+
+
+# with mujoco.viewer.launch_passive(model, data) as viewer:
+#     step = 0
+#     while viewer.is_running():
+#         restore_state(data, state_dict[1])
+#         model.body_pos[object_body_id1] = object[0]
+#         mujoco.mj_step(model, data)
+#         viewer.sync()
+# print("脚本终止")
