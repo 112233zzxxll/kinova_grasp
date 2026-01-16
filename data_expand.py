@@ -55,6 +55,15 @@ cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
 cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
 renderer = mujoco.Renderer(model, height=224, width=224)
 
+# --------------- 键盘监听 ------------------
+user_input = None
+def key_callback(keycode):
+    global user_input
+    if keycode == ord('Y'):
+        user_input = "save"
+    elif keycode == ord('U'):
+        user_input = "abandon"
+    print(f"Key pressed: {chr(keycode)}")
 
 # --------------- 环境重置 ---------------
 def save_state(data):
@@ -100,7 +109,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 time.sleep(0.5)
                 print("环境重置完毕")
                 while not change: # 数据采集
-                    
+                    d_pos, d_so3, button = nolo_tracker.get_delta() # 获取相对位移
+                    result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
+                    data.ctrl[:7] = result
+                    mujoco.mj_step(model, data)
+                    # target 也要保存，否则机械臂运行就闪现？
 
 
 
