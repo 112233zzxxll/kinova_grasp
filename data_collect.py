@@ -24,7 +24,8 @@ import os
     state_dict 瓶颈状态
     object  被抓物体位姿
     skills  瓶颈位置索引
-    ee 求解状态
+    targets 求解状态
+    ee 末端位姿
 """
 
 
@@ -86,7 +87,8 @@ actions = [] # 输入动作
 state_dict = [] # 瓶颈状态
 object = [] # 目标位置
 skills = [] # 瓶颈位置索引
-ee = [] # 瓶颈状态求解
+targets = [] # 瓶颈状态求解
+ee = [] # 末端位姿
 demo_dir = Path("demo_path")
 demo_dir.mkdir(parents=True, exist_ok=True)
 
@@ -131,8 +133,9 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
                     state_dict.append(state)
                     skills.append(skill)
                     object.append(model.body_pos[object_body_id1])
-                    ee0 = save_state(data0)
-                    ee.append(ee0)
+                    targ = save_state(data0)
+                    targets.append(targ)
+                    ee.append([ee_rot, ee_pos, target, result])
                     print("瓶颈状态已记录：", skills)
             step += 1
 
@@ -145,6 +148,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             t["state_dict"] = state_dict
             t["object"] = object
             t["skills"] = skills
+            t["targets"] = targets
             t["ee"] = ee
             path = demo_dir / f"{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.pkl"
             with open(path, "wb") as f:
@@ -162,6 +166,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             state_dict = []
             object = []
             skills = []
+            targets = []
             ee = []
             print("缓存已清空")
             user_input = None
@@ -176,6 +181,7 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
             state_dict = []
             object = []
             skills = []
+            targets = []
             ee = []
             print("正在清理......")
             user_input = None
