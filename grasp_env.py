@@ -1,6 +1,7 @@
 import numpy as np
 import mujoco
 import mink
+import cv2
 
 model = None
 data = None
@@ -109,3 +110,19 @@ def get_reward(old_vel):
     old_vel = vel_dist
 
     return step_reward, old_vel
+
+def get_obs():
+    view = False
+    cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
+    cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
+    renderer = mujoco.Renderer(model, height=112, width=112)
+    renderer.update_scene(data, camera=cam1_id)
+    img1 = renderer.render()
+    renderer.update_scene(data, camera=cam2_id)
+    img2 = renderer.render()
+    # 显示离屏图像
+    if view == True:
+        cv2.imshow("Top View", cv2.cvtColor(img1, cv2.COLOR_RGB2BGR))
+        cv2.imshow("Side View", cv2.cvtColor(img2, cv2.COLOR_RGB2BGR))
+        cv2.waitKey(1)
+    return img1, img2
