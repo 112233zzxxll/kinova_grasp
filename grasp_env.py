@@ -66,3 +66,4 @@ def get_reward():
     object_qpos_adr = model.jnt_qposadr[object_joint_id]
     pos = data.qpos[object_qpos_adr:object_qpos_adr + 3]
     quat = data.qpos[object_qpos_adr + 3:object_qpos_adr + 7]
+    

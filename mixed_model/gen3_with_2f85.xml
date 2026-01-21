@@ -285,6 +285,13 @@
             <geom class="mesh_collision" name="col_side4" pos="-0.24 0 0.075" euler="0 0 3.142"/>
             <geom class="mesh_collision" name="col_side5" pos="-0.12 -0.205 0.075" euler="0 0 4.189"/>
             <geom class="mesh_collision" name="col_side6" pos="0.122 -0.205 0.075" euler="0 0 5.236"/>
+            <geom name="tg1" pos="0.24 0 0.12" size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
+            <geom name="tg2" pos="0.122 0.205 0.12" size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
+            <geom name="tg3" pos="-0.12 0.205 0.12" size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
+            <geom name="tg4" pos="-0.24 0 0.12" size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
+            <geom name="tg5" pos="-0.12 -0.205 0.12" size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
+            <geom name="tg6" pos="0.122 -0.205 0.12" size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
+
 </body>
 
 <body name="fixed_camera" pos="1.2 0 0.6" euler="0 0 1.57">
@@ -300,6 +307,7 @@
             <geom class="mesh_collision" name="col_side412" pos="-0.26 -0.04 0.075" euler="0 0 1.57"/>
             <geom class="mesh_collision" name="col_side413" pos="-0.21 0 0.165" euler="0 1.57 3.142"/>
             <geom class="mesh_collision" name="col_side414" pos="-0.21 0 -0.015" euler="0 -1.57 3.142"/>
+            <geom name="tg7" pos="-0.24 0 0.12" size="0.02" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
 
             <geom name="aim3" type="cylinder" size="0.003" fromto="-0.2 -0.1 0.02 -0.5 -0.1 0.02" rgba="1 0 0 1" contype="0"
             conaffinity="0" group="4"/>
