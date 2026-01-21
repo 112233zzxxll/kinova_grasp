@@ -1,7 +1,7 @@
 <mujoco model="gen3">
   <compiler angle="radian" meshdir="assets" autolimits="true"/>
   <option integrator="implicitfast" gravity="0 0 -9.8"/>
-
+  <option timestep="0.002"/>
   <option integrator="implicitfast"/>
 
   <default>

@@ -61,9 +61,36 @@ def reset_ee():
     target = mink.SE3.from_rotation_and_translation(ee_rot, ee_pos)
     return ee_pos, ee_rot, target
 
-def get_reward():
-    object_joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "six_joint")
-    object_qpos_adr = model.jnt_qposadr[object_joint_id]
-    pos = data.qpos[object_qpos_adr:object_qpos_adr + 3]
-    quat = data.qpos[object_qpos_adr + 3:object_qpos_adr + 7]
-    
+def get_reward(old_vel):
+    # 获取当前位置、速度，返回奖励、速度
+    pos_dist = []
+    vel_dist = []
+    site_names = ["ee", "tg1", "tg2", "tg3", "tg4", "tg5", "tg6", "tg7"] # 八个量 * 3
+    for name in site_names:
+        site_vel = np.zeros(6, dtype=np.float64)
+        site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, name)
+        pos = data.site_xpos[site_id].copy()
+        mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_SITE, site_id, site_vel, False)
+        vel = site_vel[:3]
+        vel_dist.append(vel)
+        pos_dist.append(pos)
+    vel_dist = np.array(vel_dist)
+    pos_dist = np.array(pos_dist)
+    old_vel = np.array(old_vel)
+
+    # 奖励 1 ：抓取距离,取最短距离（这里是负距离平方，取最大值作为奖励）
+    distance_list = []
+    for i in range(1, 7):
+        distance = -np.sum((pos_dist[0] - pos_dist[i]) ** 2)
+        distance_list.append(distance)
+    reward_1 = max(distance_list)
+
+    # 奖励 2 ：框架加速度，取六个的最大加速度（这里是加速度的平方，取最大加速度做比较，高于某阈值就惩罚）
+    acc_list = []
+    for i in range(1, 7):
+        acc = np.sum(((old_vel[i] - vel_dist[i])/2) ** 2)
+        acc_list.append(acc)
+    max_acc = max(acc_list)
+    if max_acc >= 4:
+        print("该罚")
+    return(max_acc)

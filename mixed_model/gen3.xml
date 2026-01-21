@@ -1,6 +1,6 @@
 <mujoco model="gen3">
   <compiler angle="radian" meshdir="assets"/>
-
+  <option timestep="0.002"/>
   <option integrator="implicitfast"/>
 
   <default>

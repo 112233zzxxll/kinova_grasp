@@ -91,6 +91,7 @@ targets = [] # 瓶颈状态求解
 ee = [] # 末端位姿
 demo_dir = Path("demo_path")
 demo_dir.mkdir(parents=True, exist_ok=True)
+max_acc = 0
 
 # --------------- 仿真 ---------------
 with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as viewer:
@@ -138,6 +139,10 @@ with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as vie
                     ee.append([ee_rot, ee_pos, target, result])
                     print("瓶颈状态已记录：", skills)
             step += 1
+            acc = env.get_reward([[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]])
+            if acc>=max_acc:
+                max_acc=acc
+                print(max_acc)
 
         if user_input == "save": # 环境重置 保存
             time.sleep(0.5)
