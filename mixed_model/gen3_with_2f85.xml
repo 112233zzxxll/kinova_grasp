@@ -175,6 +175,7 @@
                         conaffinity="0" group="3"/>
                         <geom name="Z1" type="cylinder" size="0.005" fromto="0 0 0 0 0 0.3" rgba="0 0 1 1" contype="0"
                         conaffinity="0" group="3"/>
+                        <geom name="ee" pos="0 0 -0.19" size="0.01" rgba="0 1 0 0.5" contype="0" conaffinity="0" group="3"/>
                         </body>
 
                         <body name="base_mount" pos="0 0 -0.06149039" quat="0 1 0 0" childclass="2f85">

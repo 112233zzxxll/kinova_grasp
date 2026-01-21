@@ -60,3 +60,9 @@ def reset_ee():
     ee_rot = mink.SO3.from_matrix(ee_rot)
     target = mink.SE3.from_rotation_and_translation(ee_rot, ee_pos)
     return ee_pos, ee_rot, target
+
+def get_reward():
+    object_joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "six_joint")
+    object_qpos_adr = model.jnt_qposadr[object_joint_id]
+    pos = data.qpos[object_qpos_adr:object_qpos_adr + 3]
+    quat = data.qpos[object_qpos_adr + 3:object_qpos_adr + 7]
