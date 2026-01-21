@@ -63,6 +63,9 @@ def reset_ee():
 
 def get_reward(old_vel):
     # 获取当前位置、速度，返回奖励、速度
+    epsilon_1 = 0.6
+    epsilon_2 = 0.2
+    epsilon_3 = 0.5
     pos_dist = []
     vel_dist = []
     site_names = ["ee", "tg1", "tg2", "tg3", "tg4", "tg5", "tg6", "tg7"] # 八个量 * 3
@@ -87,10 +90,22 @@ def get_reward(old_vel):
 
     # 奖励 2 ：框架加速度，取六个的最大加速度（这里是加速度的平方，取最大加速度做比较，高于某阈值就惩罚）
     acc_list = []
+    reward_2 = 0
     for i in range(1, 7):
         acc = np.sum(((old_vel[i] - vel_dist[i])/2) ** 2)
         acc_list.append(acc)
     max_acc = max(acc_list)
     if max_acc >= 4:
-        print("该罚")
-    return(max_acc)
+        reward_2 = -(max_acc - 4)
+    
+    # 奖励 3 ：装配（这里是与装配目标的负距离平方，取最大值作为奖励）
+    distance_list = []
+    for i in range(1, 7):
+        distance = -np.sum((pos_dist[7] - pos_dist[i]) ** 2)
+        distance_list.append(distance)
+    reward_3 = max(distance_list)
+
+    step_reward = epsilon_1*reward_1 + epsilon_2*reward_2 + epsilon_3*reward_3
+    old_vel = vel_dist
+
+    return step_reward, old_vel
