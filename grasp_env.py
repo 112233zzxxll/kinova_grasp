@@ -89,10 +89,10 @@ def get_reward(old_vel):
         distance_list.append(distance)
     reward_1 = max(distance_list)
 
-    # 奖励 2 ：框架加速度，取六个的最大加速度（这里是加速度的平方，取最大加速度做比较，高于某阈值就惩罚）
+    # 奖励 2 ：夹爪末端加速度以及框架加速度，取七个的最大加速度（这里是加速度的平方，取最大加速度做比较，高于某阈值就惩罚）
     acc_list = []
     reward_2 = 0
-    for i in range(1, 7):
+    for i in range(0, 7):
         acc = np.sum(((old_vel[i] - vel_dist[i])/2) ** 2)
         acc_list.append(acc)
     max_acc = max(acc_list)
