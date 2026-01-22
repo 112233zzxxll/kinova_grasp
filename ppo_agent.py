@@ -69,7 +69,8 @@ class PPO:
         self.lr = lr
 
         self.policy = ActorCritic(state_dim, action_dim)
-        self.optimaizer = optim.Adam(self.policy.parameters(), lr=lr)
+        self.optimaizer_actor = optim.Adam(self.policy.Actor.parameters(), lr=lr) # Actor 更新器
+        self.optimaizer_critic = optim.Adam(self.policy.Critic.parameters(), lr=lr) # Critic 更新器
 
         self.old_policy = ActorCritic(state_dim, action_dim)
         self.old_policy.load_state_dict(self.policy.state_dict()) # 复制策略
@@ -77,7 +78,7 @@ class PPO:
     def select_action(self, state):
         with torch.no_grad(): # 跳过梯度计算，防止反向传播
             # 注意这里的一些修改！！！！可能会报错
-            action_probs, state_value = self.old_policy(state)
+            action_probs, state_value = self.old_policy(state) # 旧策略采样
 
         # 重构输出的action_probs
         # 先按照概率采样，然后把四元数项归一化
@@ -89,4 +90,5 @@ class PPO:
         action[3:7] = F.normalize(action[3:7], p=2, dim=-1)
 
         return action.numpy(), log_prob.numpy(), state_value.numpy()
+        # 根据观测，返回采样到的动作、对应的动作概率密度对数、状态价值
     
