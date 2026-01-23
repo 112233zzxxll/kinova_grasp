@@ -62,6 +62,9 @@ def reset_ee():
     target = mink.SE3.from_rotation_and_translation(ee_rot, ee_pos)
     return ee_pos, ee_rot, target
 
+def reset_arm():
+    return [0.358, -0.279, -0.323, 1.91, -0.0877, 1.5, -1.52, 0]
+
 def get_reward(old_vel):
     # 获取当前位置、速度，返回奖励、速度
     epsilon_1 = 0.6

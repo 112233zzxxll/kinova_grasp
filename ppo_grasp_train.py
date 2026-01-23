@@ -84,7 +84,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 values = []
                 rewards = []
                 for step in range(n_step):
-                    print(step)
+                    # print(step)
                     mujoco.mj_step(model, data)
                     viewer.sync()
                     img1, img2 = env.get_obs() # 获取观测（state）
@@ -106,7 +106,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
                     # 动作拼接并执行
                     data.ctrl[7] = action[0]
-                    data.ctrl[:7] = action[1:8]
+                    d_pos, d_so3 = action[1:4], action[4:8]
+                    d_so3 = SO3(d_so3)
+                    ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3)
+                    model.body("target").pos = ee_pos ########
+                    quat = ee_rot.parameters() ###############
+                    model.body("target").quat = quat #########
+                    result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
+                    data.ctrl[:7] = result
 
                     # 获取奖励
                     reward, old_vel = env.get_reward(old_vel)
