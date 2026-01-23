@@ -44,11 +44,15 @@ transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                                 ])
-n_epoch = 5
-n_step = 5
+n_epoch = 5 # 每轮 rollout 次数
+n_step = 500 # 每个 epoch 步长
 n_train = 5 # 同一批 rollout 反复训练的次数
-n_batch = 2
-round = 1000 # 大轮
+n_batch = 8
+round = 50 # 大轮
+
+# 创建 checkpoint 目录
+checkpoint_dir = Path("checkpoints")
+checkpoint_dir.mkdir(exist_ok=True)
 
 # 训练主体
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -56,6 +60,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
         
         for i in range(round):
+            print(f"=== 大轮 {i+1}/{round} ===")
             print("清空缓存")
             states_batch = []
             actions_batch = []
@@ -65,6 +70,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             rewards_batch = []
             advantages_batch = []
             returns_batch = []
+
             # rollout 10 次
             for episode in range(n_epoch):
                 # 重置环境
@@ -127,6 +133,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             returns_batch = [r for ep in returns_batch for r in ep]
             net.update(advantages_batch, n_batch, n_train, log_probs_batch, states_batch, actions_batch, returns_batch)
             print("更新完成")
+            checkpoint_path = checkpoint_dir / f"ppo_kinova_grasp_round_{i+1}.pth"
+            torch.save({
+                'epoch': i + 1,
+                'policy_state_dict': net.policy.state_dict(),
+                'actor_optimizer_state_dict': net.optimizer_actor.state_dict(),
+                'critic_optimizer_state_dict': net.optimizer_critic.state_dict(),
+                'epsilon': net.epsilon,
+                'gamma': net.gamma,
+                'gae_lambda': net.gae_lambda,
+            }, checkpoint_path)
+            print(f"✅ 检查点已保存: {checkpoint_path}")
 
 
 

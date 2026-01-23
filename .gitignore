@@ -6,3 +6,4 @@ _pycache_/
 demo_path/
 expanded_path/
 test.py
+checkpoints/
