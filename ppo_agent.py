@@ -63,12 +63,14 @@ class PPO:
                  state_dim, 
                  action_dim, 
                  lr=1e-4, 
-                 gamma=0.99 # 折扣因子
+                 gamma=0.99, # 折扣因子
+                 gae_lambda=0.95 # GAE 参数
                  ):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.lr = lr
         self.gamma = gamma
+        self.gae_lambda = gae_lambda
 
         self.policy = ActorCritic(state_dim, action_dim)
         self.optimaizer_actor = optim.Adam(self.policy.Actor.parameters(), lr=lr) # Actor 更新器
@@ -110,5 +112,14 @@ class PPO:
         advantages = []
         advantage = 0
         for l in reversed(range(len(TD_errors))):
-            advantage = TD_errors[l]
+            advantage += TD_errors[l] * self.gae_lambda * self.gamma
+            advantages.insert(0, advantage)
+
+        # 计算回报
+        returns = []
+        for r in range(len(rewards)):
+            critic_return = advantages[r] + rewards[r]
+            returns.append(critic_return)
+
+        return advantages, returns
             
