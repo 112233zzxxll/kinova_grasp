@@ -141,9 +141,9 @@ class PPO:
 
         # 转为张量形式
         advantages = torch.tensor(advantages, dtype=torch.float32)
-        old_log_probs = torch.tensor(old_log_probs, dtype=torch.float32)
-        states = torch.tensor(states, dtype=torch.float32)
-        actions  = torch.tensor(actions, dtype=torch.float32)
+        # old_log_probs = torch.tensor(old_log_probs, dtype=torch.float32)
+        # states = torch.tensor(states, dtype=torch.float32)
+        # actions  = torch.tensor(actions, dtype=torch.float32)
         returns = torch.tensor(returns, dtype=torch.float32)
 
         batch_size = len(advantages)//n_batchs
@@ -177,7 +177,7 @@ class PPO:
                 self.optimizer_actor.step()
 
                 # 更新 Critic
-                critic_loss = nn.MSELoss()(new_state_value.squeeze(), returns[idx])
+                critic_loss = nn.MSELoss()(new_state_value.squeeze(-1), returns[idx])
                 self.optimizer_critic.zero_grad()
                 critic_loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.policy.Critic.parameters(), 0.5)

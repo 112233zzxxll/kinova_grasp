@@ -2,7 +2,6 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 import time
-import nolo_tracker
 import Kinematics as K
 import cv2
 import grasp_env as env
@@ -44,77 +43,90 @@ transform = transforms.Compose([
         transforms.Resize((112, 112)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+                                ])
+n_epoch = 5
+n_step = 5
+n_train = 5 # 同一批 rollout 反复训练的次数
+n_batch = 2
+round = 1000 # 大轮
 
 # 训练主体
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
 
         
+        for i in range(round):
+            print("清空缓存")
+            states_batch = []
+            actions_batch = []
+            action_probs_batch = []
+            log_probs_batch = []
+            values_batch = []
+            rewards_batch = []
+            advantages_batch = []
+            returns_batch = []
+            # rollout 10 次
+            for episode in range(n_epoch):
+                # 重置环境
+                time.sleep(0.5)
+                env.reset_target()
+                ee_pos, ee_rot, target = env.reset_ee()
+                data.ctrl[7] = 0
+                states = []
+                actions = []
+                log_probs = []
+                values = []
+                rewards = []
+                for step in range(n_step):
+                    print(step)
+                    mujoco.mj_step(model, data)
+                    viewer.sync()
+                    img1, img2 = env.get_obs() # 获取观测（state）
+                    img1_pil = Image.fromarray(img1.astype('uint8'))  # 确保是 uint8
+                    img2_pil = Image.fromarray(img2.astype('uint8'))
+                    img1 = transform(img1_pil).unsqueeze(0)
+                    img2 = transform(img2_pil).unsqueeze(0)
+                    with torch.no_grad():
+                        img1 = img_tr(img1)
+                        img2 = img_tr(img2)
+                    state = torch.cat([img1, img2], dim=1)[0]
+                    states.append(state)
 
-        print("清空缓存")
-        states_batch = []
-        actions_batch = []
-        action_probs_batch = []
-        log_probs_batch = []
-        values_batch = []
-        rewards_batch = []
-        advantages_batch = []
-        returns_batch = []
-        # rollout 10 次
-        for episode in range(10):
-            # 重置环境
-            time.sleep(0.5)
-            env.reset_target()
-            ee_pos, ee_rot, target = env.reset_ee()
-            data.ctrl[7] = 0
-            states = []
-            actions = []
-            log_probs = []
-            values = []
-            rewards = []
-            for step in range(2000):
-                print(step)
-                mujoco.mj_step(model, data)
-                viewer.sync()
-                img1, img2 = env.get_obs() # 获取观测（state）
-                img1_pil = Image.fromarray(img1.astype('uint8'))  # 确保是 uint8
-                img2_pil = Image.fromarray(img2.astype('uint8'))
-                img1 = transform(img1_pil).unsqueeze(0)
-                img2 = transform(img2_pil).unsqueeze(0)
-                with torch.no_grad():
-                    img1 = img_tr(img1)
-                    img2 = img_tr(img2)
-                state = torch.cat([img1, img2], dim=1)[0]
-                states.append(state)
+                    action, log_prob, value = net.select_action(state)
+                    action_tensor = torch.from_numpy(action).float()
+                    actions.append(action_tensor)
+                    log_probs.append(log_prob)
+                    values.append(value)
 
-                action, log_prob, value = net.select_action(state)
-                actions.append(action)
-                log_probs.append(log_prob)
-                values.append(value)
+                    # 动作拼接并执行
+                    data.ctrl[7] = action[0]
+                    data.ctrl[:7] = action[1:8]
 
-                # 动作拼接并执行
-                data.ctrl[7] = action[0]
-                data.ctrl[:7] = action[1:8]
+                    # 获取奖励
+                    reward, old_vel = env.get_reward(old_vel)
+                    rewards.append(reward)
 
-                # 获取奖励
-                reward, old_vel = env.get_reward(old_vel)
-                rewards.append(reward)
+                # 一次 rollout 完成
+                print("一次 rollout 完成")
+                advantages, returns = net.compute_gae(rewards, values)
+                states_batch.append(states)
+                actions_batch.append(actions)
+                log_probs_batch.append(log_probs)
+                values_batch.append(values)
+                rewards_batch.append(rewards)
+                advantages_batch.append(advantages)
+                returns_batch.append(returns)
 
-            # 一次 rollout 完成
-            print("一次 rollout 完成")
-            advantages, returns = net.compute_gae(rewards, values)
-            states_batch.append(states)
-            actions_batch.append(actions)
-            log_probs_batch.append(log_probs)
-            values_batch.append(values)
-            rewards_batch.append(rewards)
-            advantages_batch.append(advantages)
-            returns_batch.append(returns)
-
-        
-        # rollout 完成
-        print("rollout 完成")
+            
+            # rollout 完成
+            print("rollout 完成")
+            states_batch = torch.cat([torch.stack(ep) for ep in states_batch], dim=0)        # [N, D]
+            actions_batch = torch.cat([torch.stack(ep) for ep in actions_batch], dim=0)      # [N, A]
+            log_probs_batch = torch.tensor([log for ep in log_probs_batch for log in ep])
+            advantages_batch = [a for ep in advantages_batch for a in ep]
+            returns_batch = [r for ep in returns_batch for r in ep]
+            net.update(advantages_batch, n_batch, n_train, log_probs_batch, states_batch, actions_batch, returns_batch)
+            print("更新完成")
 
 
 
