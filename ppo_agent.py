@@ -101,7 +101,7 @@ class PPO:
         return action.cpu().numpy(), log_prob.item(), state_value.cpu().item() 
         # 根据观测，返回采样到的动作、对应的动作概率密度对数总和、状态价值
 
-    def compute_gae(self, rewards, values):
+    def compute_gae(self, rewards, values): # 针对一条rollout
         # 通过values获取nevt values
         next_values = np.zeros_like(values)
         for i in range(len(next_values)):
