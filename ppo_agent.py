@@ -63,10 +63,12 @@ class PPO:
                  state_dim, 
                  action_dim, 
                  lr=1e-4, 
+                 gamma=0.99 # 折扣因子
                  ):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.lr = lr
+        self.gamma = gamma
 
         self.policy = ActorCritic(state_dim, action_dim)
         self.optimaizer_actor = optim.Adam(self.policy.Actor.parameters(), lr=lr) # Actor 更新器
@@ -91,4 +93,22 @@ class PPO:
 
         return action.numpy(), log_prob.numpy(), state_value.numpy()
         # 根据观测，返回采样到的动作、对应的动作概率密度对数、状态价值
-    
+
+    def compute_gae(self, rewards, values):
+        # 通过values获取nevt values
+        next_values = values
+        next_values.pop(0)
+        next_values.append(values[-1]) 
+
+        # 计算TD误差
+        TD_errors = []
+        for t in range(len(rewards)):
+            delta = rewards[t] + self.gamma * next_values[t] - values[t]
+            TD_errors.append(delta)
+        
+        # 计算GAE优势
+        advantages = []
+        advantage = 0
+        for l in reversed(range(len(TD_errors))):
+            advantage = TD_errors[l]
+            
