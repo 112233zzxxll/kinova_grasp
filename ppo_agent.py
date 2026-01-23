@@ -129,6 +129,7 @@ class PPO:
         return advantages, returns
             
     def update(self, advantages, n_batchs, n_epoch, old_log_probs, states, actions, returns):
+        self.old_policy.load_state_dict(self.policy.state_dict())
         # 先划分batch
         # 共 10 个 episode 的 rollout，每个 episode 包含 1000 步，总共 1000*10 组的参数随机打乱
         # 划分8个 batch，每个 batch 包含1250 个数据
