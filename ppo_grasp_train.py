@@ -122,6 +122,10 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 rewards_batch.append(rewards)
                 advantages_batch.append(advantages)
                 returns_batch.append(returns)
+                # 环境重置
+                env.reset_target()
+                ee_pos, ee_rot, target = env.reset_ee()
+                data.ctrl[7] = 0
 
             
             # rollout 完成
