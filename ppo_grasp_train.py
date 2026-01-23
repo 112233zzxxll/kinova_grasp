@@ -44,7 +44,7 @@ transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                                 ])
-n_epoch = 5 # 每轮 rollout 次数
+n_episode = 5 # 每轮 rollout 次数
 n_step = 500 # 每个 epoch 步长
 n_train = 5 # 同一批 rollout 反复训练的次数
 n_batch = 8
@@ -72,7 +72,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             returns_batch = []
 
             # rollout 10 次
-            for episode in range(n_epoch):
+            for episode in range(n_episode):
                 # 重置环境
                 time.sleep(0.5)
                 env.reset_target()
@@ -84,6 +84,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 values = []
                 rewards = []
                 for step in range(n_step):
+                    print(episode,"/",n_episode,"|||",step)
                     # print(step)
                     mujoco.mj_step(model, data)
                     viewer.sync()
