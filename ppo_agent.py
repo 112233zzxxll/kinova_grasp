@@ -18,7 +18,7 @@ class CNN(nn.Module): # 图像卷积，不参与参数更新，卷积前记得�
             nn.AdaptiveAvgPool2d((4, 4)), # 64 4 4
             nn.Flatten() # 展平
         )
-        self.fc = nn.Linear(64*4*4, 256)
+        self.fc = nn.Linear(64*4*4, 128)
 
     def forward(self, x):
         x = self.features(x)
@@ -29,8 +29,9 @@ class ActorCritic(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim): # hidden_dim = 32
         super().__init__()
         # Actor 网络
-        # 输出动作的正态分布，数据结构为[mu1,mu2,...,mu7,sigma1, sigma2,...,sigma7]
-        # 前三个是dx,dy,dz,后四个是d_so3四元数
+        # 输出动作的正态分布，数据结构为[mu1,mu2,...,mu7,mu8,sigma1, sigma2,...,sigma7, sigma8]
+        # 第一个是夹爪
+        # 而后三个是dx,dy,dz,最后四个是d_so3四元数
         self.Actor = nn.Sequential(
             nn.Linear(state_dim, hidden_dim),
             nn.ReLU(),
@@ -62,6 +63,7 @@ class PPO:
     def __init__(self, 
                  state_dim, 
                  action_dim, 
+                 hidden_dim,
                  lr=1e-4, 
                  gamma=0.99, # 折扣因子
                  gae_lambda=0.95, # GAE 参数
@@ -69,16 +71,17 @@ class PPO:
                  ):
         self.state_dim = state_dim
         self.action_dim = action_dim
+        self.hidden_dim = hidden_dim
         self.lr = lr
         self.gamma = gamma
         self.gae_lambda = gae_lambda
         self.epsilon = epsilon
 
-        self.policy = ActorCritic(state_dim, action_dim)
+        self.policy = ActorCritic(self.state_dim, self.action_dim, self.hidden_dim)
         self.optimizer_actor = optim.Adam(self.policy.Actor.parameters(), lr=lr) # Actor 更新器
         self.optimizer_critic = optim.Adam(self.policy.Critic.parameters(), lr=lr) # Critic 更新器
 
-        self.old_policy = ActorCritic(state_dim, action_dim)
+        self.old_policy = ActorCritic(self.state_dim, self.action_dim, self.hidden_dim)
         self.old_policy.load_state_dict(self.policy.state_dict()) # 复制策略
 
     def select_action(self, state):
@@ -88,14 +91,14 @@ class PPO:
 
         # 重构输出的action_probs
         # 先按照概率采样，然后把四元数项归一化
-        mu = torch.tensor(action_probs[0: 7])
-        sigma = F.softplus(action_probs[7: 14]) + 1e-6
+        mu = action_probs[0: self.action_dim]
+        sigma = F.softplus(action_probs[self.action_dim: 2*self.action_dim]) + 1e-6
         dist = Normal(loc=mu, scale=sigma)
         action = dist.sample()
         log_prob = dist.log_prob(action).sum()
-        action[3:7] = F.normalize(action[3:7], p=2, dim=-1)
+        action[4:8] = F.normalize(action[4:8], p=2, dim=-1)
 
-        return action.numpy(), log_prob.numpy(), state_value.numpy()
+        return action.cpu().numpy(), log_prob.item(), state_value.cpu().item() 
         # 根据观测，返回采样到的动作、对应的动作概率密度对数总和、状态价值
 
     def compute_gae(self, rewards, values):
@@ -137,11 +140,11 @@ class PPO:
 
 
         # 转为张量形式
-        advantages = torch.tensor(advantages)
-        old_log_probs = torch.tensor(old_log_probs)
-        states = torch.tensor(states)
-        actions  = torch.tensor(actions)
-        returns = torch.tensor(returns)
+        advantages = torch.tensor(advantages, dtype=torch.float32)
+        old_log_probs = torch.tensor(old_log_probs, dtype=torch.float32)
+        states = torch.tensor(states, dtype=torch.float32)
+        actions  = torch.tensor(actions, dtype=torch.float32)
+        returns = torch.tensor(returns, dtype=torch.float32)
 
         batch_size = len(advantages)//n_batchs
         for epoch in range(n_epoch): # 训练轮数
@@ -153,8 +156,8 @@ class PPO:
                 # 针对每个 batch 进行如下操作
                 # 重要性重采样
                 new_action_probs, new_state_value = self.policy(states[idx])
-                mu = new_action_probs[:, :7]
-                sigma = F.softplus(new_action_probs[:, 7:]) + 1e-6
+                mu = new_action_probs[:, :self.action_dim]
+                sigma = F.softplus(new_action_probs[:, self.action_dim:]) + 1e-6
                 dist = Normal(loc=mu, scale=sigma)
                 new_log_probs = dist.log_prob(actions[idx]).sum(dim=1)
 
@@ -166,13 +169,14 @@ class PPO:
                 loss2 = torch.clamp(ratios, 1 - self.epsilon, 1 + self.epsilon) * advantages[idx]
                 Actor_loss = -torch.min(loss1, loss2).mean()
 
-                # Actor 梯度更新
+                # 更新 Actor
                 self.optimizer_actor.zero_grad()
                 Actor_loss.backward()
                 # 梯度裁剪防止爆炸
                 torch.nn.utils.clip_grad_norm_(self.policy.Actor.parameters(), 0.5)
                 self.optimizer_actor.step()
 
+                # 更新 Critic
                 critic_loss = nn.MSELoss()(new_state_value.squeeze(), returns[idx])
                 self.optimizer_critic.zero_grad()
                 critic_loss.backward()
