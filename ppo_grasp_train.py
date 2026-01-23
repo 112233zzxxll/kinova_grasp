@@ -45,7 +45,7 @@ transform = transforms.Compose([
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                                 ])
 n_episode = 5 # 每轮 rollout 次数
-n_step = 200 # 每个 epoch 步长
+n_step = 150 # 每个 epoch 步长
 n_train = 5 # 同一批 rollout 反复训练的次数
 n_batch = 8
 round = 500 # 大轮
@@ -74,7 +74,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             # rollout 10 次
             for episode in range(n_episode):
                 # 重置环境
-
                 time.sleep(0.5)
                 env.reset_target()
                 ee_pos, ee_rot, target = env.reset_ee()
@@ -82,7 +81,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 for i in range(1000):
                     result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
                     data.ctrl[:7] = result
-                    print(target)
                     mujoco.mj_step(model, data)
                     viewer.sync()
                 states = []
@@ -90,6 +88,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 log_probs = []
                 values = []
                 rewards = []
+                print("环境已重置")
                 for step in range(n_step):
                     print(episode,"/",n_episode,"|||",step)
                     # print(step)
@@ -114,14 +113,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
                     # 动作拼接并执行
                     data.ctrl[7] = action[0]
-                    d_pos, d_so3 = action[1:4], action[4:8]
-                    d_so3 = SO3(d_so3)
-                    ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3)
-                    model.body("target").pos = ee_pos ########
-                    quat = ee_rot.parameters() ###############
-                    model.body("target").quat = quat #########
-                    result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
-                    data.ctrl[:7] = result
+                    data.ctrl[:7] = action[1:8]
 
                     # 获取奖励
                     reward, old_vel = env.get_reward(old_vel)
