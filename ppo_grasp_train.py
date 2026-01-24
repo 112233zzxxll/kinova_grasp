@@ -90,7 +90,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 rewards = []
                 print("环境已重置")
                 for step in range(n_step):
-                    print(episode,"/",n_episode,"|||",step)
+                    print(episode + 1,"/",n_episode,"|||",step)
                     # print(step)
                     mujoco.mj_step(model, data)
                     viewer.sync()
