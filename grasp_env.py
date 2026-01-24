@@ -115,7 +115,7 @@ def get_reward(old_vel):
     return step_reward, old_vel
 
 def get_obs():
-    view = False
+    view = True
     cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
     cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
     renderer = mujoco.Renderer(model, height=112, width=112)

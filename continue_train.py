@@ -15,6 +15,7 @@ from torchvision import transforms
 import torch
 from PIL import Image
 from mink.lie.so3 import SO3
+from camera_opr import AsyncRenderer
 
 # 该脚本用ppo训练kinova抓取拼接桁架
 old_vel = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]] # 初值，用于计算与速度相关的奖励
@@ -33,6 +34,14 @@ configuration, tasks, end_effector_task, solver, limits, model0, data0 = K.init_
 cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
 cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
 renderer = mujoco.Renderer(model, height=112, width=112)
+
+async_renderer = AsyncRenderer(
+    model, 
+    data, 
+    cameras=[cam1_id, cam2_id],
+    height=112,
+    width=112
+)
 
 # ---------------- 初始化神经网络 --------------
 net = PPO(256, 8, 32)
@@ -129,7 +138,13 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     # print(step)
                     mujoco.mj_step(model, data)
                     viewer.sync()
-                    img1, img2 = env.get_obs() # 获取观测（state）
+                    # img1, img2 = env.get_obs() # 获取观测（state）
+                    # 2. 异步获取图像（不会阻塞 mj_step）
+                    try:
+                        img1, img2 = async_renderer.render_async()
+                    except Exception as e:
+                        print(f"渲染失败: {e}")
+                        continue
                     img1_pil = Image.fromarray(img1.astype('uint8'))  # 确保是 uint8
                     img2_pil = Image.fromarray(img2.astype('uint8'))
                     img1 = transform(img1_pil).unsqueeze(0)
