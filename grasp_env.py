@@ -67,8 +67,8 @@ def reset_arm():
 
 def get_reward(old_vel):
     # 获取当前位置、速度，返回奖励、速度
-    epsilon_1 = 0.6
-    epsilon_2 = 0.2
+    epsilon_1 = 1
+    epsilon_2 = 0.6
     epsilon_3 = 0.5
     pos_dist = []
     vel_dist = []
@@ -114,18 +114,18 @@ def get_reward(old_vel):
 
     return step_reward, old_vel
 
-def get_obs():
-    view = True
-    cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
-    cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
-    renderer = mujoco.Renderer(model, height=112, width=112)
-    renderer.update_scene(data, camera=cam1_id)
-    img1 = renderer.render()
-    renderer.update_scene(data, camera=cam2_id)
-    img2 = renderer.render()
-    # 显示离屏图像
-    if view == True:
-        cv2.imshow("Top View", cv2.cvtColor(img1, cv2.COLOR_RGB2BGR))
-        cv2.imshow("Side View", cv2.cvtColor(img2, cv2.COLOR_RGB2BGR))
-        cv2.waitKey(1)
-    return img1, img2
+# def get_obs():
+#     view = True
+#     cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
+#     cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
+#     renderer = mujoco.Renderer(model, height=112, width=112)
+#     renderer.update_scene(data, camera=cam1_id)
+#     img1 = renderer.render()
+#     renderer.update_scene(data, camera=cam2_id)
+#     img2 = renderer.render()
+#     # 显示离屏图像
+#     if view == True:
+#         cv2.imshow("Top View", cv2.cvtColor(img1, cv2.COLOR_RGB2BGR))
+#         cv2.imshow("Side View", cv2.cvtColor(img2, cv2.COLOR_RGB2BGR))
+#         cv2.waitKey(1)
+#     return img1, img2
