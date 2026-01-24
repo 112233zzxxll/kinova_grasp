@@ -98,7 +98,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 rewards = []
                 print("环境已重置")
                 for step in range(n_step):
-                    print(episode + 1,"/",n_episode,"|||",step)
                     # print(step)
                     mujoco.mj_step(model, data)
                     viewer.sync()
@@ -139,6 +138,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     # 获取奖励
                     reward, old_vel = env.get_reward(old_vel)
                     rewards.append(reward)
+                    print(f"\r{episode+1}/{n_episode} ||| {step+1} ||| {sum(rewards):.2f}", end="", flush=True)
 
                 # 一次 rollout 完成
                 print("一次 rollout 完成")

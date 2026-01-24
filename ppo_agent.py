@@ -58,12 +58,25 @@ class ActorCritic(nn.Module):
     def forward(self, x):
         action_probs = self.Actor(x)
         state_value = self.Critic(x)
-        mean = action_probs[:self.action_dim]
-        mean = torch.tanh(mean)
-        mean[0] = (mean[0] + 1)/2 * 255 # 夹爪缩放
-        mean[1:self.action_dim] = mean[1:self.action_dim] * 3 ##################################### 缩放系数
-        action_probs[:self.action_dim] = mean
-        return action_probs, state_value
+        # 拆分 mean 和 log_std
+        mean_raw = action_probs[:self.action_dim]      # [batch, 8]
+        log_std = action_probs[self.action_dim:]       # [batch, 8]
+
+        # 对 mean 做 tanh 归一化到 [-1, 1]
+        mean_tanh = torch.tanh(mean_raw)                  # [batch, 8]
+
+        # ✅ 安全地缩放不同维度（全部 out-of-place）
+        # 夹爪维度 (dim=0): [-1,1] -> [0, 255]
+        gripper = (mean_tanh[0:1] + 1) / 2 * 255       # [batch, 1]
+        
+        # 其他关节 (dim=1～7): [-1,1] -> [-3, 3]
+        joints = mean_tanh[1:self.action_dim] * 3      # [batch, 7]
+
+        # 拼接：1D 张量用 dim=0
+        mean_scaled = torch.cat([gripper, joints], dim=0)      # [8]
+        action_probs_new = torch.cat([mean_scaled, log_std], dim=0)  # [16]
+
+        return action_probs_new, state_value
     
 class PPO:
     def __init__(self, 
