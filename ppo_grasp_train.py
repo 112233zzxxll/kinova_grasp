@@ -52,11 +52,11 @@ transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                                 ])
-n_episode = 5 # 每轮 rollout 次数
-n_step = 150 # 每个 epoch 步长
-n_train = 5 # 同一批 rollout 反复训练的次数
+n_episode = 10 # 每轮 rollout 次数
+n_step = 1000 # 每个 epoch 步长
+n_train = 10 # 同一批 rollout 反复训练的次数
 n_batch = 8
-round = 500 # 大轮
+round = 5000 # 大轮
 
 # 创建 checkpoint 目录
 checkpoint_dir = Path("checkpoints")
@@ -127,7 +127,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
                     # 动作拼接并执行
                     data.ctrl[7] = action[0]
-                    data.ctrl[:7] = action[1:8]
+                    d_pos, d_so3 = action[1:4], action[4:8]
+                    d_so3 = SO3(d_so3)
+                    ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3)
+                    result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
+                    data.ctrl[:7] = result
+                    # # 另一种动作执行方式
+                    # data.ctrl[7] = action[0]
+                    # data.ctrl[:7] = action[1:8]
 
                     # 获取奖励
                     reward, old_vel = env.get_reward(old_vel)

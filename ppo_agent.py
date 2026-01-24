@@ -28,6 +28,7 @@ class CNN(nn.Module): # 图像卷积，不参与参数更新，卷积前记得�
 class ActorCritic(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim): # hidden_dim = 32
         super().__init__()
+        self.action_dim = action_dim
         # Actor 网络
         # 输出动作的正态分布，数据结构为[mu1,mu2,...,mu7,mu8,sigma1, sigma2,...,sigma7, sigma8]
         # 第一个是夹爪
@@ -57,6 +58,11 @@ class ActorCritic(nn.Module):
     def forward(self, x):
         action_probs = self.Actor(x)
         state_value = self.Critic(x)
+        mean = action_probs[:self.action_dim]
+        mean = torch.tanh(mean)
+        mean[0] = (mean[0] + 1)/2 * 255 # 夹爪缩放
+        mean[1:self.action_dim] = mean[1:self.action_dim] * 3 ##################################### 缩放系数
+        action_probs[:self.action_dim] = mean
         return action_probs, state_value
     
 class PPO:

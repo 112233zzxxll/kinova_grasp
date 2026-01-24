@@ -163,7 +163,14 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
                     # 动作拼接并执行
                     data.ctrl[7] = action[0]
-                    data.ctrl[:7] = action[1:8]
+                    d_pos, d_so3 = action[1:4], action[4:8]
+                    d_so3 = SO3(d_so3)
+                    ee_pos, ee_rot, target = K.get_target(ee_pos, ee_rot, d_pos, d_so3)
+                    result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
+                    data.ctrl[:7] = result
+                    # # 另一种动作执行方式
+                    # data.ctrl[7] = action[0]
+                    # data.ctrl[:7] = action[1:8]
 
                     # 获取奖励
                     reward, old_vel = env.get_reward(old_vel)
