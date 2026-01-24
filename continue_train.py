@@ -49,10 +49,45 @@ n_step = 150 # 每个 epoch 步长
 n_train = 5 # 同一批 rollout 反复训练的次数
 n_batch = 8
 round = 500 # 大轮
-
+CHECKPOINT_DIR = "checkpoints"
+DEVICE = "cpu"
 # 创建 checkpoint 目录
 checkpoint_dir = Path("checkpoints")
 checkpoint_dir.mkdir(exist_ok=True)
+
+# ------------------ 加载最新检查点 ------------------
+def load_latest_checkpoint():
+    ckpt_dir = Path(CHECKPOINT_DIR)
+    if not ckpt_dir.exists():
+        raise FileNotFoundError(f"检查点目录 {CHECKPOINT_DIR} 不存在，请先运行初始训练")
+    
+    ckpt_files = list(ckpt_dir.glob("*.pth"))
+    if not ckpt_files:
+        raise FileNotFoundError(f"目录 {CHECKPOINT_DIR} 中没有 .pth 文件")
+    
+    # 按修改时间排序，取最新的
+    latest_ckpt = max(ckpt_files, key=os.path.getmtime)
+    print(f"🔍 找到最新检查点: {latest_ckpt}")
+    
+    checkpoint = torch.load(latest_ckpt, map_location=DEVICE)
+    return checkpoint, latest_ckpt
+
+net = PPO(state_dim=256, action_dim=8, hidden_dim=32)
+img_tr = CNN()
+# 加载检查点
+checkpoint, ckpt_path = load_latest_checkpoint()
+
+# 恢复模型和优化器状态
+net.policy.load_state_dict(checkpoint['policy_state_dict'])
+net.optimizer_actor.load_state_dict(checkpoint['actor_optimizer_state_dict'])
+net.optimizer_critic.load_state_dict(checkpoint['critic_optimizer_state_dict'])
+img_tr.load_state_dict(checkpoint['cnn_state_dict'])
+
+start_epoch = checkpoint['epoch']
+print(f"✅ 成功加载检查点！从第 {start_epoch + 1} 轮开始继续训练")
+print(f"   - epsilon: {checkpoint.get('epsilon', 'N/A')}")
+print(f"   - gamma: {checkpoint.get('gamma', 'N/A')}")
+print(f"   - gae_lambda: {checkpoint.get('gae_lambda', 'N/A')}")
 
 # 训练主体
 with mujoco.viewer.launch_passive(model, data) as viewer:
@@ -146,13 +181,9 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 'policy_state_dict': net.policy.state_dict(),
                 'actor_optimizer_state_dict': net.optimizer_actor.state_dict(),
                 'critic_optimizer_state_dict': net.optimizer_critic.state_dict(),
-                'cnn_state_dict': img_tr.state_dict(),
                 'epsilon': net.epsilon,
                 'gamma': net.gamma,
                 'gae_lambda': net.gae_lambda,
             }, checkpoint_path)
             print(f"✅ 检查点已保存: {checkpoint_path}")
-
-
-
 
