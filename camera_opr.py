@@ -30,9 +30,9 @@ class AsyncRenderer:
             local_data.qpos[:] = self.data.qpos
             local_data.qvel[:] = self.data.qvel
             local_data.act[:] = self.data.act
-            # 如果你的模型用到了 mocap 或其他状态，也需复制：
-            local_data.mocap_pos[:] = self.data.mocap_pos
-            local_data.mocap_quat[:] = self.data.mocap_quat
+            # # 如果你的模型用到了 mocap 或其他状态，也需复制：
+            # local_data.mocap_pos[:] = self.data.mocap_pos
+            # local_data.mocap_quat[:] = self.data.mocap_quat
 
             # 渲染
             images = []

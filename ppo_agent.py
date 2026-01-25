@@ -59,31 +59,34 @@ class ActorCritic(nn.Module):
         action_probs = self.Actor(x)
         state_value = self.Critic(x)
         # 拆分 mean 和 log_std
-        mean_raw = action_probs[:self.action_dim]      # [batch, 8]
-        log_std = action_probs[self.action_dim:]       # [batch, 8]
+        mean_raw = action_probs[:self.action_dim]  # 动作均值
+        std = action_probs[self.action_dim:]   # 动作标准差
 
+        # 首先对均值进行调整：
         # 对 mean 做 tanh 归一化到 [-1, 1]
-        mean_tanh = torch.tanh(mean_raw)                  # [batch, 8]
-
+        mean_tanh = torch.tanh(mean_raw)
         # ✅ 安全地缩放不同维度（全部 out-of-place）
         # 夹爪维度 (dim=0): [-1,1] -> [0, 255]
-        gripper = (mean_tanh[0:1] + 1) / 2 * 255       # [batch, 1]
-        
-        # 其他关节 (dim=1～7): [-1,1] -> [-3, 3]
-        joints = mean_tanh[1:self.action_dim] * 4   # [batch, 7] 大训练是3 ####################################################
+        gripper = (mean_tanh[0:1] + 1) / 2 * 255  
+        # 其他自由度（可以是位移和四元数，也可以是七个关节）
+        freedom = mean_tanh[1:self.action_dim] * 3# 大训练是3 ####################################################
+
+        # 然后对方差进行调整
+        std = (torch.tanh(std)+1)/2 # 转换到0~1之间
+        std = std * 0.5 # 动作采样稳定性控制 ######################################################################
 
         # 拼接：1D 张量用 dim=0
-        mean_scaled = torch.cat([gripper, joints], dim=0)      # [8]
-        action_probs_new = torch.cat([mean_scaled, log_std], dim=0)  # [16]
+        mean_scaled = torch.cat([gripper, freedom], dim=0)
+        action_probs_new = torch.cat([mean_scaled, std], dim=0)
 
-        return action_probs_new, state_value
+        return action_probs_new, state_value # action_probs：前八维是均值，后八维是方差，如果想要四元数，需要在select_action归一化
     
 class PPO:
     def __init__(self, 
                  state_dim, 
                  action_dim, 
                  hidden_dim,
-                 lr=1e-4, 
+                 lr=0.01, 
                  gamma=0.99, # 折扣因子
                  gae_lambda=0.95, # GAE 参数
                  epsilon=0.2 # 裁剪系数
@@ -111,11 +114,11 @@ class PPO:
         # 重构输出的action_probs
         # 先按照概率采样，然后把四元数项归一化
         mu = action_probs[0: self.action_dim]
-        sigma = F.softplus(action_probs[self.action_dim: 2*self.action_dim]) + 1e-6
+        sigma = action_probs[self.action_dim: 2*self.action_dim]
         dist = Normal(loc=mu, scale=sigma)
         action = dist.sample()
         log_prob = dist.log_prob(action).sum()
-        action[4:8] = F.normalize(action[4:8], p=2, dim=-1)
+        # action[4:8] = F.normalize(action[4:8], p=2, dim=-1) # 四元数归一化
 
         return action.cpu().numpy(), log_prob.item(), state_value.cpu().item() 
         # 根据观测，返回采样到的动作、对应的动作概率密度对数总和、状态价值

@@ -2,6 +2,7 @@ import numpy as np
 import mujoco
 import mink
 import cv2
+import torch
 
 model = None
 data = None
@@ -53,6 +54,9 @@ def reset_target():
 
     """赋予位置"""
     model.body_pos[object_body_id1] = random_pos # 默认位置修改
+
+    """速度重置为0"""
+    data.qvel = np.array(torch.zeros_like(torch.tensor(data.qvel)))
 
 
 def reset_ee():

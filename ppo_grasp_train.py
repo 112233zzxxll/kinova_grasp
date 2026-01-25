@@ -54,10 +54,10 @@ transform = transforms.Compose([
                                 ])
 
 ############################################训练参数####################################################
-n_episode = 5 # 每轮 rollout 次数
+n_episode = 1 # 每轮 rollout 次数
 n_step = 100 # 每个 epoch 步长
-n_train = 1000 # 同一批 rollout 反复训练的次数
-n_batch = 2
+n_train = 1 # 同一批 rollout 反复训练的次数
+n_batch = 100
 round = 50000 # 大轮
 n = 500 # 每隔n个step执行一次动作
 ########################################################################################################
@@ -87,7 +87,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             for episode in range(n_episode):
                 # 重置环境
                 time.sleep(0.5)
-                env.reset_target()
                 ee_pos, ee_rot, target = env.reset_ee()
                 data.ctrl[7] = 0
                 for i in range(1000):
@@ -95,6 +94,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     data.ctrl[:7] = result
                     mujoco.mj_step(model, data)
                     viewer.sync()
+                env.reset_target()
+                time.sleep(0.1)
                 states = []
                 actions = []
                 log_probs = []
@@ -128,7 +129,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     log_probs.append(log_prob)
                     values.append(value)
 
-                    # # 动作执行，作为末端位姿的差值输出
+                    # # 动作执行，作为末端位姿的差值输出，记得打开四元数归一化
                     # data.ctrl[7] = action[0]
                     # d_pos, d_so3 = action[1:4], action[4:8]
                     # d_so3 = SO3(d_so3)
@@ -136,12 +137,12 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     # result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
                     # data.ctrl[:7] = result
 
-                    # 另一种动作执行方式，直接映射为关节角
+                    # 另一种动作执行方式，直接映射为关节角，记得关闭四元数归一化
                     data.ctrl[7] = action[0]
                     result = action[1:8]
                     data.ctrl[:7] = result
 
-                    # # 还有一种方式，直接作为末端位姿
+                    # # 还有一种方式，直接作为末端位姿， 记得打开四元数归一化
                     # ee_pos, ee_rot = action[1:4], action[4:8]
                     # ee_rot = SO3(ee_rot)
                     # d_pos = [0,0,0]
@@ -152,6 +153,12 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     # data.ctrl[:7] = result
                     # data.ctrl[7] = action[0]
 
+                    # # 最后一种动作执行方式，关节角差值，记得关闭四元数归一化,
+                    # # 问题是关节过度扭转
+                    # data.ctrl[7] = action[0]
+                    # result += action[1:8]
+                    # data.ctrl[:7] = result
+
                     model.body("target").pos = ee_pos  # 立即生效
                     quat = ee_rot.parameters()
                     model.body("target").quat = quat
@@ -160,11 +167,11 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     reward, old_vel = env.get_reward(old_vel)
                     rewards.append(reward)
                     print(f"\r{episode+1}/{n_episode} ||| {step+1} ||| {sum(rewards):.2f}", end="", flush=True)
-                    for i in range(n):
-                        data.ctrl[:7] = result
-                        data.ctrl[7] = action[0] # 保证策略输出正常
-                        mujoco.mj_step(model, data)
-                        viewer.sync()
+                    # for i in range(n):
+                    #     data.ctrl[:7] = result
+                    #     data.ctrl[7] = action[0] # 保证策略输出正常
+                    #     mujoco.mj_step(model, data)
+                    #     viewer.sync()
 
                 # 一次 rollout 完成
                 print("一次 rollout 完成")
