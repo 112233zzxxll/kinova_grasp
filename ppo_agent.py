@@ -70,7 +70,7 @@ class ActorCritic(nn.Module):
         gripper = (mean_tanh[0:1] + 1) / 2 * 255       # [batch, 1]
         
         # 其他关节 (dim=1～7): [-1,1] -> [-3, 3]
-        joints = mean_tanh[1:self.action_dim] * 3   # [batch, 7] 大训练是3 ####################################################
+        joints = mean_tanh[1:self.action_dim] * 4   # [batch, 7] 大训练是3 ####################################################
 
         # 拼接：1D 张量用 dim=0
         mean_scaled = torch.cat([gripper, joints], dim=0)      # [8]
