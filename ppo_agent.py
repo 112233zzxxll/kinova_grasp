@@ -66,14 +66,14 @@ class ActorCritic(nn.Module):
         # 对 mean 做 tanh 归一化到 [-1, 1]
         mean_tanh = torch.tanh(mean_raw)
         # ✅ 安全地缩放不同维度（全部 out-of-place）
-        # 夹爪维度 (dim=0): [-1,1] -> [0, 255]
-        gripper = (mean_tanh[0:1] + 1) / 2 * 255  
+        # 夹爪维度 (dim=0): [-1,1] -> [0, 255](500)
+        gripper = (mean_tanh[0:1] + 1) / 2 * 500  
         # 其他自由度（可以是位移和四元数，也可以是七个关节）
-        freedom = mean_tanh[1:self.action_dim] * 3# 大训练是3 ####################################################
+        freedom = mean_tanh[1:self.action_dim] * 0.02
 
         # 然后对方差进行调整
         std = (torch.tanh(std)+1)/2 # 转换到0~1之间
-        std = std * 0.5 # 动作采样稳定性控制 ######################################################################
+        std = std * 0.01 + 1e-6 # 动作采样稳定性控制 ######################################################################
 
         # 拼接：1D 张量用 dim=0
         mean_scaled = torch.cat([gripper, freedom], dim=0)
@@ -154,7 +154,6 @@ class PPO:
         return advantages, returns
             
     def update(self, advantages, n_batchs, n_epoch, old_log_probs, states, actions, returns):
-        self.old_policy.load_state_dict(self.policy.state_dict())
         # 先划分batch
         # 共 10 个 episode 的 rollout，每个 episode 包含 1000 步，总共 1000*10 组的参数随机打乱
         # 划分8个 batch，每个 batch 包含1250 个数据
