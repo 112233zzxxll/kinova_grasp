@@ -63,7 +63,7 @@ transform = transforms.Compose([
 
 n_episode = 10 # 每轮 rollout 次数
 n_step = 1000 # 每个 epoch 步长
-n_train = 5 # 同一批 rollout 反复训练的次数
+n_train = 10 # 同一批 rollout 反复训练的次数
 n_batch = 8
 round = 50000 # 大轮
 n = 200 # 每隔n个执行一次动作
@@ -91,6 +91,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             returns_batch = []
 
             # rollout 10 次
+            net.old_policy.load_state_dict(net.policy.state_dict())
             for episode in range(n_episode):
                 # 重置环境
                 time.sleep(0.5)
@@ -109,8 +110,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 values = []
                 rewards = []
                 print("环境已重置")
-                net.old_policy.load_state_dict(net.policy.state_dict())
-
+            
                 for step in range(n_step):
                     # print(step)
                     mujoco.mj_step(model, data)
