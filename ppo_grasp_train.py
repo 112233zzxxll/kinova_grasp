@@ -55,18 +55,15 @@ transform = transforms.Compose([
                                 ])
 
 ############################################训练参数####################################################
-# n_episode = 1 # 每轮 rollout 次数
-# n_step = 50 # 每个 epoch 步长
-# n_train = 5 # 同一批 rollout 反复训练的次数
-# n_batch = 5
-# round = 50000 # 大轮
-# n = 100 # 每隔n个step执行一次动作
+# n_episode = 1 # rollout 次数
+# n_step = 10 # 每个 epoch 步长
+# n_epoch = 5 # 同一批 rollout 反复训练的次数
+# n_batch = 2
 
-n_episode = 10 # rollout 次数
+n_episode = 10 # 
 n_step = 1000 # 每个 epoch 步长
-n_train = 10 # 同一批 rollout 反复训练的次数
+n_epoch = 10 # 同一批 rollout 反复训练的次数
 n_batch = 8
-n = 200 # 每隔n个执行一次动作
 ########################################################################################################
 
 # 创建 checkpoint 目录
@@ -176,6 +173,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                         time.sleep(0.1)
                         img1, img2 = env.get_obs() # 获取观测（state）
                         i = -1
+                        dones.append(done)
                         # 视觉编码
                         with torch.no_grad():
                             img1 = img_tr(img1.unsqueeze(0)).numpy()[0]
@@ -198,6 +196,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                         action, log_prob, next_value = net.select_action([next_state])
                         next_values.append(next_value)
                         state = next_state
+                        dones.append(done)
 
                     i += 1  
                     # # 保证策略输出正常
@@ -209,30 +208,25 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     mujoco.mj_step(model, data)
                     viewer.sync()
                 # 一次 rollout 完成
-                print("一次 rollout 完成")
+                print("rollout 完成")
 
             
-            # rollout 完成
-            print("rollout 完成")
-            states_batch = torch.cat([torch.stack(ep) for ep in states_batch], dim=0)        # [N, D]
-            actions_batch = torch.cat([torch.stack(ep) for ep in actions_batch], dim=0)      # [N, A]
-            log_probs_batch = torch.tensor([log for ep in log_probs_batch for log in ep])
-            advantages_batch = [a for ep in advantages_batch for a in ep]
-            returns_batch = [r for ep in returns_batch for r in ep]
-            net.update(advantages_batch, n_batch, n_train, log_probs_batch, states_batch, actions_batch, returns_batch)
-            print("更新完成")
-            checkpoint_path = checkpoint_dir / f"ppo_kinova_grasp_round_{i+1}.pth"
-            torch.save({
-                'epoch': i + 1,
-                'policy_state_dict': net.policy.state_dict(),
-                'actor_optimizer_state_dict': net.optimizer_actor.state_dict(),
-                'critic_optimizer_state_dict': net.optimizer_critic.state_dict(),
-                'cnn_state_dict': img_tr.state_dict(),
-                'epsilon': net.epsilon,
-                'gamma': net.gamma,
-                'gae_lambda': net.gae_lambda,
-            }, checkpoint_path)
-            print(f"✅ 检查点已保存: {checkpoint_path}")
+                advantages, returns = net.compute_gae(rewards, values, next_values, dones)
+                print(rewards, values, next_values, dones)
+                net.update(n_epoch, n_batch, advantages, returns, log_probs, states, actions)
+                print("更新完成")
+                checkpoint_path = checkpoint_dir / f"ppo_kinova_grasp.pth"
+                torch.save({
+                    'epoch': i + 1,
+                    'policy_state_dict': net.policy.state_dict(),
+                    'actor_optimizer_state_dict': net.optimizer_actor.state_dict(),
+                    'critic_optimizer_state_dict': net.optimizer_critic.state_dict(),
+                    'cnn_state_dict': img_tr.state_dict(),
+                    'epsilon': net.epsilon,
+                    'gamma': net.gamma,
+                    'gae_lambda': net.gae_lambda,
+                }, checkpoint_path)
+                print(f"✅ 检查点已保存: {checkpoint_path}")
 
 
 

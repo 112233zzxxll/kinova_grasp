@@ -113,7 +113,7 @@ class PPO:
         sigma = action_probs[:, self.action_dim: 2*self.action_dim]
         dist = Normal(loc=mu, scale=sigma)
         action = dist.sample()
-        log_prob = dist.log_prob(action).sum()
+        log_prob = dist.log_prob(action).sum(dim=1)
         # action[4:8] = F.normalize(action[4:8], p=2, dim=-1) # 四元数归一化
         return action.numpy(), log_prob.item(), state_value.item() 
         # 根据观测，返回采样到的动作、对应的动作概率密度对数总和、状态价值
@@ -153,8 +153,13 @@ class PPO:
 
                 # 在每个 batch 下进行重要性采样
                 new_action_probs, new_state_value = self.policy(states[idx])
-                dist = torch.distributions.Categorical(new_action_probs)
+                # 注意这里的一些修改！！！！可能会报错
+                # 按照概率采样，（把四元数项归一化）
+                mu = new_action_probs[:, 0: self.action_dim]
+                sigma = new_action_probs[:, self.action_dim: 2*self.action_dim]
+                dist = Normal(loc=mu, scale=sigma)
                 new_log_probs = dist.log_prob(actions[idx])
+
                 # 计算概率比率
                 ratios = torch.exp(new_log_probs.sum(dim=1) - old_log_probs[idx])
                 # Actor损失裁剪
