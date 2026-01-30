@@ -86,7 +86,7 @@ class PPO:
                  state_dim, 
                  action_dim, 
                  hidden_dim,
-                 lr=0.01, 
+                 lr=0.0004, 
                  gamma=0.99, # 折扣因子
                  gae_lambda=0.95, # GAE 参数
                  epsilon=0.2 # 裁剪系数
