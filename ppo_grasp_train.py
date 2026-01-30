@@ -212,7 +212,6 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
             
                 advantages, returns = net.compute_gae(rewards, values, next_values, dones)
-                print(rewards, values, next_values, dones)
                 net.update(n_epoch, n_batch, advantages, returns, log_probs, states, actions)
                 print("更新完成")
                 checkpoint_path = checkpoint_dir / f"ppo_kinova_grasp.pth"
