@@ -16,18 +16,10 @@ from torchvision import transforms
 import torch
 from PIL import Image
 from mink.lie.so3 import SO3
+from camera_opr import AsyncRenderer
 
 
-# --------------- 基本配置 ---------------
-model, data = env.init_env("mixed_model/scene.xml")
-data.ctrl[:8] = [0,0,0,0,0,0,0,0]
-n=1 # 索引
-with mujoco.viewer.launch_passive(model, data) as viewer:
-    while viewer.is_running():
-        for i in np.arange(-314,314,1):
-            s=i/100
-            data.ctrl[n] = s
-            for k in range(10):
-                mujoco.mj_step(model,data)
-                viewer.sync()
-
+A = torch.tensor([1,1,1])
+B = torch.tensor([2,3,4])
+C = torch.cat([A,B])
+print(C)

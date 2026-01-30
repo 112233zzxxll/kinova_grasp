@@ -17,6 +17,7 @@ from PIL import Image
 from mink.lie.so3 import SO3
 from camera_opr import AsyncRenderer
 
+
 # 该脚本用ppo训练kinova抓取拼接桁架
 old_vel = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]] # 初值，用于计算与速度相关的奖励
 
@@ -61,11 +62,10 @@ transform = transforms.Compose([
 # round = 50000 # 大轮
 # n = 100 # 每隔n个step执行一次动作
 
-n_episode = 10 # 每轮 rollout 次数
+n_episode = 10 # rollout 次数
 n_step = 1000 # 每个 epoch 步长
 n_train = 10 # 同一批 rollout 反复训练的次数
 n_batch = 8
-round = 50000 # 大轮
 n = 200 # 每隔n个执行一次动作
 ########################################################################################################
 
@@ -76,25 +76,10 @@ checkpoint_dir.mkdir(exist_ok=True)
 # 训练主体
 with mujoco.viewer.launch_passive(model, data) as viewer:
     while viewer.is_running():
-
-        
-        for i in range(round):
-            print(f"=== 大轮 {i+1}/{round} ===")
-            print("清空缓存")
-            states_batch = []
-            actions_batch = []
-            action_probs_batch = []
-            log_probs_batch = []
-            values_batch = []
-            rewards_batch = []
-            advantages_batch = []
-            returns_batch = []
-
-            # rollout 10 次
-            net.old_policy.load_state_dict(net.policy.state_dict())
+            
             for episode in range(n_episode):
                 # 重置环境
-                time.sleep(0.5)
+                time.sleep(0.1)
                 ee_pos, ee_rot, target = env.reset_ee()
                 data.ctrl[7] = 0
                 for i in range(1000):
@@ -105,36 +90,36 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                 env.reset_target()
                 time.sleep(0.1)
                 states = []
+                next_states = []
                 actions = []
                 log_probs = []
                 values = []
+                next_values = []
                 rewards = []
+                dones = []
                 print("环境已重置")
-            
-                for step in range(n_step):
-                    # print(step)
-                    mujoco.mj_step(model, data)
-                    viewer.sync()
-                    # img1, img2 = env.get_obs() # 获取观测（state）
-                    # 2. 异步获取图像（不会阻塞 mj_step）
-                    try:
-                        img1, img2 = async_renderer.render_async()
-                    except Exception as e:
-                        print(f"渲染失败: {e}")
-                        continue
-                    img1_pil = Image.fromarray(img1.astype('uint8'))  # 确保是 uint8
-                    img2_pil = Image.fromarray(img2.astype('uint8'))
-                    img1 = transform(img1_pil).unsqueeze(0)
-                    img2 = transform(img2_pil).unsqueeze(0)
-                    with torch.no_grad():
-                        img1 = img_tr(img1)
-                        img2 = img_tr(img2)
-                    state = torch.cat([img1, img2], dim=1)[0]
-                    states.append(state)
 
-                    action, log_prob, value = net.select_action(state)
-                    action_tensor = torch.from_numpy(action).float()
-                    actions.append(action_tensor)
+
+                # rollout
+                img1, img2 = env.get_obs() # 获取观测（state）
+                # 视觉编码
+                with torch.no_grad():
+                    img1 = img_tr(img1.unsqueeze(0)).numpy()[0]
+                    img2 = img_tr(img2.unsqueeze(0)).numpy()[0]
+                state = []
+                state.extend(img1)
+                state.extend(img2)
+                i = 0 # 记录一局是否结束
+                for step in range(n_step):
+                    print(f"\r{step}", end="", flush=False)
+                    # mujoco.mj_step(model, data)
+                    # viewer.sync()#####################################记得后面加
+                    states.append(state)
+                    # print(state)
+                    action, log_prob, value = net.select_action([state])
+                    # print(action)
+                    actions.append(action[0])
+                    # print(action, log_prob, value)
                     log_probs.append(log_prob)
                     values.append(value)
 
@@ -164,8 +149,8 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
 
                     # 最后一种动作执行方式，关节角差值，记得关闭四元数归一化,
                     # 问题是关节过度扭转
-                    data.ctrl[7] = action[0]
-                    result += action[1:8]
+                    data.ctrl[7] = action[0][0]
+                    result += action[0][1:8]
                     data.ctrl[:7] = result
 
                     model.body("target").pos = ee_pos  # 立即生效
@@ -173,26 +158,58 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                     model.body("target").quat = quat
 
                     # 获取奖励
-                    reward, old_vel = env.get_reward(old_vel)
+                    reward, old_vel, done = env.get_reward(old_vel, i)
                     rewards.append(reward)
-                    print(f"\r{episode+1}/{n_episode} ||| {step+1} ||| {sum(rewards):.2f}", end="", flush=True)
+
+                    if done == 1: # 结束
+                        next_values.append(0.0)
+                         # 重置环境
+                        time.sleep(0.1)
+                        ee_pos, ee_rot, target = env.reset_ee()
+                        data.ctrl[7] = 0
+                        for i in range(1000):
+                            result = K.solve(configuration, tasks, end_effector_task, solver, limits, model0, data0, target)
+                            data.ctrl[:7] = result
+                            mujoco.mj_step(model, data)
+                            viewer.sync()
+                        env.reset_target()
+                        time.sleep(0.1)
+                        img1, img2 = env.get_obs() # 获取观测（state）
+                        i = -1
+                        # 视觉编码
+                        with torch.no_grad():
+                            img1 = img_tr(img1.unsqueeze(0)).numpy()[0]
+                            img2 = img_tr(img2.unsqueeze(0)).numpy()[0]
+                        state = []
+                        state.extend(img1)
+                        state.extend(img2)
+
+                    else:
+                        # 前进获取 next_value
+                        img1, img2 = env.get_obs() # 获取观测（state）
+                        # 视觉编码
+                        with torch.no_grad():
+                            img1 = img_tr(img1.unsqueeze(0)).numpy()[0]
+                            img2 = img_tr(img2.unsqueeze(0)).numpy()[0]
+                        next_state = []
+                        next_state.extend(img1)
+                        next_state.extend(img2)
+                        # print(state)
+                        action, log_prob, next_value = net.select_action([next_state])
+                        next_values.append(next_value)
+                        state = next_state
+
+                    i += 1  
                     # # 保证策略输出正常
-                    # for i in range(n):
-                    #     data.ctrl[:7] = result
-                    #     data.ctrl[7] = action[0] 
+                    # for i in range(20):
+                    #     # data.ctrl[:7] = result
+                    #     # data.ctrl[7] = action[0] 
                     #     mujoco.mj_step(model, data)
                     #     viewer.sync()
-
+                    mujoco.mj_step(model, data)
+                    viewer.sync()
                 # 一次 rollout 完成
                 print("一次 rollout 完成")
-                advantages, returns = net.compute_gae(rewards, values)
-                states_batch.append(states)
-                actions_batch.append(actions)
-                log_probs_batch.append(log_probs)
-                values_batch.append(values)
-                rewards_batch.append(rewards)
-                advantages_batch.append(advantages)
-                returns_batch.append(returns)
 
             
             # rollout 完成

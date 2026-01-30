@@ -3,6 +3,8 @@ import mujoco
 import mink
 import cv2
 import torch
+from torchvision import transforms
+from PIL import Image
 
 model = None
 data = None
@@ -69,8 +71,8 @@ def reset_ee():
 def reset_arm():
     return [0.358, -0.279, -0.323, 1.91, -0.0877, 1.5, -1.52, 0]
 
-def get_reward(old_vel):
-    # 获取当前位置、速度，返回奖励、速度
+def get_reward(old_vel, step):
+    # 获取当前位置、速度，返回奖励、速度、是否结束
     epsilon_1 = 1
     epsilon_2 = 0.6
     epsilon_3 = 0.5
@@ -116,20 +118,36 @@ def get_reward(old_vel):
     step_reward = epsilon_1*reward_1 + epsilon_2*reward_2 + epsilon_3*reward_3
     old_vel = vel_dist
 
-    return step_reward, old_vel
+    # 判断是否结束
+    if reward_3 >= -0.01 or step >= 500:
+        over = True
+    else:
+        over = False
+    return step_reward, old_vel, over
 
-# def get_obs():
-#     view = True
-#     cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
-#     cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
-#     renderer = mujoco.Renderer(model, height=112, width=112)
-#     renderer.update_scene(data, camera=cam1_id)
-#     img1 = renderer.render()
-#     renderer.update_scene(data, camera=cam2_id)
-#     img2 = renderer.render()
-#     # 显示离屏图像
-#     if view == True:
-#         cv2.imshow("Top View", cv2.cvtColor(img1, cv2.COLOR_RGB2BGR))
-#         cv2.imshow("Side View", cv2.cvtColor(img2, cv2.COLOR_RGB2BGR))
-#         cv2.waitKey(1)
-#     return img1, img2
+
+
+def get_obs():
+    view = True
+    cam1_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "rgb_camera")
+    cam2_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, "fixed_camera")
+    renderer = mujoco.Renderer(model, height=112, width=112)
+    renderer.update_scene(data, camera=cam1_id)
+    img1 = renderer.render()
+    renderer.update_scene(data, camera=cam2_id)
+    img2 = renderer.render()
+    # 显示离屏图像
+    if view == True:
+        cv2.imshow("Top View", cv2.cvtColor(img1, cv2.COLOR_RGB2BGR))
+        cv2.imshow("Side View", cv2.cvtColor(img2, cv2.COLOR_RGB2BGR))
+        cv2.waitKey(1)
+    img1 = Image.fromarray(img1)
+    img2 = Image.fromarray(img2)
+    transform = transforms.Compose([
+        transforms.Resize((112, 112)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                                ])
+    img1 = transform(img1)
+    img2 = transform(img2)
+    return img1, img2 # tensor

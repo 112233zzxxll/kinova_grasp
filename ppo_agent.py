@@ -59,25 +59,25 @@ class ActorCritic(nn.Module):
         action_probs = self.Actor(x)
         state_value = self.Critic(x)
         # 拆分 mean 和 log_std
-        mean_raw = action_probs[:self.action_dim]  # 动作均值
-        std = action_probs[self.action_dim:]   # 动作标准差
+        mean_raw = action_probs[:,:self.action_dim]  # 动作均值
+        std = action_probs[:,self.action_dim:]   # 动作标准差
 
         # 首先对均值进行调整：
         # 对 mean 做 tanh 归一化到 [-1, 1]
         mean_tanh = torch.tanh(mean_raw)
         # ✅ 安全地缩放不同维度（全部 out-of-place）
         # 夹爪维度 (dim=0): [-1,1] -> [0, 255](500)
-        gripper = (mean_tanh[0:1] + 1) / 2 * 500  
+        gripper = (mean_tanh[:,0:1] + 1) / 2 * 500  
         # 其他自由度（可以是位移和四元数，也可以是七个关节）
-        freedom = mean_tanh[1:self.action_dim] * 0.02
+        freedom = mean_tanh[:, 1:self.action_dim] * 0.02
 
         # 然后对方差进行调整
         std = (torch.tanh(std)+1)/2 # 转换到0~1之间
         std = std * 0.01 + 1e-6 # 动作采样稳定性控制 ######################################################################
 
         # 拼接：1D 张量用 dim=0
-        mean_scaled = torch.cat([gripper, freedom], dim=0)
-        action_probs_new = torch.cat([mean_scaled, std], dim=0)
+        mean_scaled = torch.cat([gripper, freedom], dim=1)
+        action_probs_new = torch.cat([mean_scaled, std], dim=1)
 
         return action_probs_new, state_value # action_probs：前八维是均值，后八维是方差，如果想要四元数，需要在select_action归一化
     
@@ -109,8 +109,8 @@ class PPO:
             # 注意这里的一些修改！！！！可能会报错
             action_probs, state_value = self.policy(state) # 策略采样
         # 按照概率采样，（把四元数项归一化）
-        mu = action_probs[0: self.action_dim]
-        sigma = action_probs[self.action_dim: 2*self.action_dim]
+        mu = action_probs[:, 0: self.action_dim]
+        sigma = action_probs[:, self.action_dim: 2*self.action_dim]
         dist = Normal(loc=mu, scale=sigma)
         action = dist.sample()
         log_prob = dist.log_prob(action).sum()
