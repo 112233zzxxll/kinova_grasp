@@ -67,9 +67,9 @@ class ActorCritic(nn.Module):
         mean_tanh = torch.tanh(mean_raw)
         # ✅ 安全地缩放不同维度（全部 out-of-place）
         # 夹爪维度 (dim=0): [-1,1] -> [0, 255](500)
-        gripper = (mean_tanh[:,0:1] + 1) / 2 * 500  
+        gripper = (mean_tanh[:,0:1] + 1) / 2 * 255
         # 其他自由度（可以是位移和四元数，也可以是七个关节）
-        freedom = mean_tanh[:, 1:self.action_dim] * 0.02
+        freedom = mean_tanh[:, 1:self.action_dim] * 1
 
         # 然后对方差进行调整
         std = (torch.tanh(std)+1)/2 # 转换到0~1之间
@@ -78,6 +78,7 @@ class ActorCritic(nn.Module):
         # 拼接：1D 张量用 dim=0
         mean_scaled = torch.cat([gripper, freedom], dim=1)
         action_probs_new = torch.cat([mean_scaled, std], dim=1)
+        # action_probs_new = torch.cat([mean_raw, std], dim=1)
 
         return action_probs_new, state_value # action_probs：前八维是均值，后八维是方差，如果想要四元数，需要在select_action归一化
     
@@ -86,7 +87,7 @@ class PPO:
                  state_dim, 
                  action_dim, 
                  hidden_dim,
-                 lr=0.0004, 
+                 lr=0.0001, 
                  gamma=0.99, # 折扣因子
                  gae_lambda=0.95, # GAE 参数
                  epsilon=0.2 # 裁剪系数

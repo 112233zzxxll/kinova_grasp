@@ -55,15 +55,15 @@ transform = transforms.Compose([
                                 ])
 
 ############################################训练参数####################################################
-# n_episode = 1 # rollout 次数
-# n_step = 10 # 每个 epoch 步长
-# n_epoch = 5 # 同一批 rollout 反复训练的次数
-# n_batch = 2
+n_episode = 100 # rollout 次数
+n_step = 10 # 每个 epoch 步长
+n_epoch = 3 # 同一批 rollout 反复训练的次数
+n_batch = 5
 
-n_episode = 10 # 
-n_step = 1000 # 每个 epoch 步长
-n_epoch = 10 # 同一批 rollout 反复训练的次数
-n_batch = 8
+# n_episode = 10 # 
+# n_step = 1000 # 每个 epoch 步长
+# n_epoch = 10 # 同一批 rollout 反复训练的次数
+# n_batch = 8
 ########################################################################################################
 
 # 创建 checkpoint 目录
@@ -199,16 +199,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
                         dones.append(done)
 
                     i += 1  
-                    # # 保证策略输出正常
-                    # for i in range(20):
-                    #     # data.ctrl[:7] = result
-                    #     # data.ctrl[7] = action[0] 
-                    #     mujoco.mj_step(model, data)
-                    #     viewer.sync()
+                    # 保证策略输出正常
+                    for x in range(200):
+                        # data.ctrl[:7] = result
+                        # data.ctrl[7] = action[0] 
+                        mujoco.mj_step(model, data)
+                        viewer.sync()
                     mujoco.mj_step(model, data)
                     viewer.sync()
                 # 一次 rollout 完成
                 print("rollout 完成")
+                print(np.sum(rewards))
 
             
                 advantages, returns = net.compute_gae(rewards, values, next_values, dones)
